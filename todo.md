@@ -23,8 +23,14 @@
 - [ ] Ajouter des tests Vitest couvrant les procédures tRPC, l’isolation tenant, les permissions et les erreurs
 - [ ] Ajouter une documentation et une configuration réelles pour les variables d’environnement et Netlify/Neon
 - [ ] Mettre en place une stratégie technique explicite pour supporter Neon en production et TiDB en développement
-- [ ] Vérifier en lecture seule le projet Neon connecté et récupérer ses paramètres non sensibles
-- [ ] Valider la connexion Neon sans exposer la chaîne de connexion dans le dépôt ou le chat
-- [ ] Préparer la configuration de publication Netlify sans déclencher la mise en production
-- [ ] Synchroniser le code validé vers le dépôt GitHub AtelierCoutureManager
-- [ ] Vérifier les secrets et la connexion Neon avant la publication
+- [x] Vérifier en lecture seule le projet Neon connecté et récupérer ses paramètres non sensibles
+- [x] Valider la connexion Neon sans exposer la chaîne de connexion dans le dépôt ou le chat
+- [x] Préparer la configuration de publication Netlify sans déclencher la mise en production
+- [x] Synchroniser le code validé vers le dépôt GitHub AtelierCoutureManager
+- [x] Vérifier les secrets et la connexion Neon avant la publication
+- [ ] Poursuivre le développement autonome jusqu’à une version MVP réellement exploitable
+- [ ] Préparer tous les réglages nécessaires à une publication Netlify, sans déclencher la mise en production
+- [ ] Renseigner la chaîne postgresql Neon dans le secret applicatif et faire passer le test de configuration Neon
+- [ ] Vérifier explicitement les secrets requis pour OAuth, sessions et publication Netlify
+- [ ] Revalider l’accès Netlify depuis l’intégration connectée et identifier le site AtelierManager
+- [ ] Vérifier les réglages Netlify sans déclencher la mise en production

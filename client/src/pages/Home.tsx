@@ -24,16 +24,17 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 
 const navItems = [
-  { label: "Vue d'ensemble", icon: LayoutDashboard, active: true },
-  { label: "Ventes", icon: ShoppingBag },
-  { label: "Commandes", icon: Package, count: "12" },
-  { label: "Produits & stock", icon: Boxes },
-  { label: "Clients", icon: Users },
-  { label: "Boutiques", icon: Store },
-  { label: "Production", icon: Factory },
+  { label: "Vue d'ensemble", icon: LayoutDashboard, active: true, href: "/" },
+  { label: "Ventes", icon: ShoppingBag, href: "/operations/orders" },
+  { label: "Commandes", icon: Package, count: "12", href: "/operations/orders" },
+  { label: "Produits & stock", icon: Boxes, href: "/operations/products" },
+  { label: "Clients", icon: Users, href: "/operations/customers" },
+  { label: "Boutiques", icon: Store, href: "/operations/stores" },
+  { label: "Production", icon: Factory, href: "/operations/orders" },
 ];
 
 const orders = [
@@ -77,11 +78,11 @@ export default function Home() {
         <div className="mb-5 px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#a1a39d]">Pilotage</div>
         <nav className="space-y-1">
           {navItems.map((item) => (
-            <button key={item.label} className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition ${item.active ? "bg-[#20231f] font-semibold text-white shadow-[0_6px_18px_rgba(32,35,31,0.14)]" : "text-[#71756d] hover:bg-[#f0f0ec] hover:text-[#20231f]"}`}>
+            <Link key={item.label} href={item.href} onClick={() => setMobileNav(false)} className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition ${item.active ? "bg-[#20231f] font-semibold text-white shadow-[0_6px_18px_rgba(32,35,31,0.14)]" : "text-[#71756d] hover:bg-[#f0f0ec] hover:text-[#20231f]"}`}>
               <item.icon size={16} strokeWidth={item.active ? 2.2 : 1.8} />
               <span className="flex-1">{item.label}</span>
               {item.count && <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${item.active ? "bg-white/15 text-white" : "bg-[#ecece7] text-[#878a83]"}`}>{item.count}</span>}
-            </button>
+            </Link>
           ))}
         </nav>
 
