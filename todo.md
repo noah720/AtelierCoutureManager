@@ -1,0 +1,30 @@
+# Project TODO
+
+- [x] Définir la direction visuelle et les tokens de design de l’application
+- [x] Mettre en place le modèle multi-tenant des marques et l’isolation des données
+- [ ] Ajouter les rôles et permissions d’accès par marque
+- [ ] Créer le schéma Neon/Drizzle pour marques, établissements, clients, produits, variantes, stock et commandes
+- [x] Ajouter les helpers de base de données et les procédures tRPC protégées
+- [ ] Construire le layout de tableau de bord avec navigation métier
+- [ ] Construire le tableau de bord opérationnel avec ventes, commandes, stock et activité récente
+- [ ] Ajouter la gestion des boutiques ou établissements
+- [ ] Ajouter la gestion des fiches clients et mensurations
+- [ ] Ajouter la gestion du catalogue, variantes, prix et stock
+- [ ] Ajouter la création et le suivi des commandes avec lignes et statuts
+- [ ] Ajouter les états de chargement, erreurs, états vides et accessibilité responsive
+- [ ] Ajouter ou mettre à jour les tests Vitest des flux serveur et de l’isolation tenant
+- [ ] Configurer les variables d’environnement et documenter Neon, GitHub et Netlify
+- [x] Vérifier le build, les tests et le rendu desktop/mobile
+- [ ] Sauvegarder le checkpoint final et livrer la version MVP
+- [ ] Résoudre la compatibilité entre la base TiDB/MySQL de développement et la cible PostgreSQL Neon
+- [ ] Implémenter un vrai contrôle d’accès par rôle de marque dans les procédures tRPC métier
+- [ ] Brancher le tableau de bord sur les données tRPC avec chargement, erreurs et états vides réels
+- [ ] Créer un layout réutilisable de dashboard métier et l’utiliser dans l’application
+- [ ] Ajouter des tests Vitest couvrant les procédures tRPC, l’isolation tenant, les permissions et les erreurs
+- [ ] Ajouter une documentation et une configuration réelles pour les variables d’environnement et Netlify/Neon
+- [ ] Mettre en place une stratégie technique explicite pour supporter Neon en production et TiDB en développement
+- [ ] Vérifier en lecture seule le projet Neon connecté et récupérer ses paramètres non sensibles
+- [ ] Valider la connexion Neon sans exposer la chaîne de connexion dans le dépôt ou le chat
+- [ ] Préparer la configuration de publication Netlify sans déclencher la mise en production
+- [ ] Synchroniser le code validé vers le dépôt GitHub AtelierCoutureManager
+- [ ] Vérifier les secrets et la connexion Neon avant la publication
