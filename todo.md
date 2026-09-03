@@ -17,7 +17,7 @@
 - [x] Vérifier le build, les tests et le rendu desktop/mobile
 - [ ] Sauvegarder le checkpoint final et livrer la version MVP
 - [ ] Résoudre la compatibilité entre la base TiDB/MySQL de développement et la cible PostgreSQL Neon
-- [ ] Implémenter un vrai contrôle d’accès par rôle de marque dans les procédures tRPC métier
+- [x] Implémenter un vrai contrôle d’accès par rôle de marque dans les procédures tRPC métier
 - [ ] Brancher le tableau de bord sur les données tRPC avec chargement, erreurs et états vides réels
 - [ ] Créer un layout réutilisable de dashboard métier et l’utiliser dans l’application
 - [ ] Ajouter des tests Vitest couvrant les procédures tRPC, l’isolation tenant, les permissions et les erreurs
@@ -39,6 +39,6 @@
 - [ ] Implémenter les variantes produit, les niveaux de stock par établissement et les ajustements d’inventaire
 - [x] Corriger le fallback SPA Netlify pour que les routes profondes `/operations/...` ne renvoient pas 404
 - [ ] Ouvrir et vérifier explicitement dans Netlify la branche, la commande de build, le dossier de publication, les redirects SPA et les variables non sensibles
-- [ ] Tester `orders.create`, `stores.deactivate`, `inventory.adjust` et `organization.create` via `appRouter.createCaller`
-- [ ] Tester les erreurs `FORBIDDEN`, `PRECONDITION_FAILED`, `BAD_REQUEST` et `SERVICE_UNAVAILABLE` des procédures protégées
+- [x] Tester `orders.create`, `stores.deactivate`, `inventory.adjust` et `organization.create` via `appRouter.createCaller`
+- [x] Tester les erreurs `FORBIDDEN`, `PRECONDITION_FAILED`, `BAD_REQUEST` et `SERVICE_UNAVAILABLE` des procédures protégées
 - [ ] Tester qu’une ressource d’un autre tenant n’est ni lisible ni modifiable via les procédures métier

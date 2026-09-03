@@ -64,8 +64,8 @@ export const appRouter = router({
       const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
-      await db.update(stores).set({ isActive: false }).where(and(eq(stores.id, input.id), eq(stores.organizationId, organizationId)));
-      return { success: true } as const;
+      const result = await db.update(stores).set({ isActive: false }).where(and(eq(stores.id, input.id), eq(stores.organizationId, organizationId)));
+      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
     }),
   }),
 
@@ -86,8 +86,8 @@ export const appRouter = router({
       const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
-      await db.update(inventory).set({ quantity: input.quantity }).where(and(eq(inventory.id, input.id), eq(inventory.organizationId, organizationId)));
-      return { success: true } as const;
+      const result = await db.update(inventory).set({ quantity: input.quantity }).where(and(eq(inventory.id, input.id), eq(inventory.organizationId, organizationId)));
+      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
     }),
   }),
 

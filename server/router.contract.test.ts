@@ -30,9 +30,9 @@ const user = {
   lastSignedIn: new Date(),
 };
 
-function caller() {
+function caller(role: "user" | "owner" | "manager" | "staff" = user.role) {
   return appRouter.createCaller({
-    user,
+    user: { ...user, role },
     req: { protocol: "https", headers: {} } as TrpcContext["req"],
     res: {} as TrpcContext["res"],
   });
@@ -56,7 +56,7 @@ describe("protected tRPC contracts", () => {
   it("allows a manager to deactivate only a store in the current tenant", async () => {
     const db = {
       select: vi.fn().mockReturnValue(query([{ organizationId: 10, role: "manager" }])),
-      update: vi.fn().mockReturnValue({ set: () => ({ where: async () => undefined }) }),
+      update: vi.fn().mockReturnValue({ set: () => ({ where: async () => ({ affectedRows: 1 }) }) }),
     };
     mocks.getDb.mockResolvedValue(db);
     await expect(caller().stores.deactivate({ id: 4 })).resolves.toEqual({ success: true });
@@ -66,11 +66,26 @@ describe("protected tRPC contracts", () => {
   it("allows a manager to adjust inventory through the protected procedure", async () => {
     const db = {
       select: vi.fn().mockReturnValue(query([{ organizationId: 10, role: "manager" }])),
-      update: vi.fn().mockReturnValue({ set: () => ({ where: async () => undefined }) }),
+      update: vi.fn().mockReturnValue({ set: () => ({ where: async () => ({ affectedRows: 1 }) }) }),
     };
     mocks.getDb.mockResolvedValue(db);
     await expect(caller().inventory.adjust({ id: 3, quantity: 12 })).resolves.toEqual({ success: true });
     expect(db.update).toHaveBeenCalled();
+  });
+
+  it("rejects staff from manager-only store mutations", async () => {
+    const db = { select: vi.fn().mockReturnValue(query([{ organizationId: 10, role: "staff" }])) };
+    mocks.getDb.mockResolvedValue(db);
+    await expect(caller("staff").stores.deactivate({ id: 4 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("returns no success when a store from another tenant is targeted", async () => {
+    const db = {
+      select: vi.fn().mockReturnValue(query([{ organizationId: 10, role: "manager" }])),
+      update: vi.fn().mockReturnValue({ set: () => ({ where: async () => ({ affectedRows: 0 }) }) }),
+    };
+    mocks.getDb.mockResolvedValue(db);
+    await expect(caller().stores.deactivate({ id: 999 })).resolves.toEqual({ success: false });
   });
 
   it("rejects an order referencing a store outside the current tenant", async () => {
