@@ -11,3 +11,8 @@
 
 # Les variables sensibles doivent être configurées dans Netlify, jamais dans ce dépôt.
 # DATABASE_URL doit être fournie par l’environnement de déploiement.
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

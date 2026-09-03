@@ -37,3 +37,4 @@
 - [ ] Implémenter l’édition, l’activation et la suppression sécurisée des boutiques avec UI et procédures tRPC
 - [ ] Ajouter les fiches clients détaillées avec mensurations et notes consultables et modifiables
 - [ ] Implémenter les variantes produit, les niveaux de stock par établissement et les ajustements d’inventaire
+- [ ] Corriger le fallback SPA Netlify pour que les routes profondes `/operations/...` ne renvoient pas 404
