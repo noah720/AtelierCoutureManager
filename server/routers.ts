@@ -4,9 +4,9 @@ import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb, getOperationalSummary, getOrganizationForUser, getOrganizationIdForUser, listCustomers, listInventory, listOrders, listProducts, listStores, listVariants } from "./db";
-import { customers, organizationMembers, organizations, products, stores } from "../drizzle/schema";
+import { customers, orders, organizationMembers, organizations, products, stores } from "../drizzle/schema";
 
 async function requireOrganization(userId: number, allowedRoles: Array<"owner" | "manager" | "staff"> = ["owner", "manager", "staff"]) {
   const db = await getDb();
@@ -79,6 +79,16 @@ export const appRouter = router({
 
   orders: router({
     list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listOrders)),
+    create: protectedProcedure.input(z.object({ storeId: z.number().int().positive(), customerId: z.number().int().positive(), reference: z.string().min(3).max(32), totalAmount: z.string().regex(/^\\d+(\\.\\d{1,2})?$/), notes: z.string().max(2000).optional() })).mutation(async ({ ctx, input }) => {
+      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager", "staff"]);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
+      const [store] = await db.select({ id: stores.id }).from(stores).where(and(eq(stores.id, input.storeId), eq(stores.organizationId, organizationId))).limit(1);
+      const [customer] = await db.select({ id: customers.id }).from(customers).where(and(eq(customers.id, input.customerId), eq(customers.organizationId, organizationId))).limit(1);
+      if (!store || !customer) throw new TRPCError({ code: "BAD_REQUEST", message: "La boutique ou le client n’appartient pas à votre marque." });
+      const [order] = await db.insert(orders).values({ organizationId, storeId: input.storeId, customerId: input.customerId, reference: input.reference, totalAmount: input.totalAmount, notes: input.notes ?? null }).$returningId();
+      return order;
+    }),
   }),
 
   products: router({
