@@ -32,9 +32,13 @@
 - [ ] Préparer tous les réglages nécessaires à une publication Netlify, sans déclencher la mise en production
 - [ ] Renseigner la chaîne postgresql Neon dans le secret applicatif et faire passer le test de configuration Neon
 - [ ] Vérifier explicitement les secrets requis pour OAuth, sessions et publication Netlify
-- [ ] Revalider l’accès Netlify depuis l’intégration connectée et identifier le site AtelierManager
-- [ ] Vérifier les réglages Netlify sans déclencher la mise en production
+- [x] Revalider l’accès Netlify depuis l’intégration connectée et identifier le site AtelierManager
+- [x] Vérifier les réglages Netlify sans déclencher la mise en production
 - [ ] Implémenter l’édition, l’activation et la suppression sécurisée des boutiques avec UI et procédures tRPC
 - [ ] Ajouter les fiches clients détaillées avec mensurations et notes consultables et modifiables
 - [ ] Implémenter les variantes produit, les niveaux de stock par établissement et les ajustements d’inventaire
-- [ ] Corriger le fallback SPA Netlify pour que les routes profondes `/operations/...` ne renvoient pas 404
+- [x] Corriger le fallback SPA Netlify pour que les routes profondes `/operations/...` ne renvoient pas 404
+- [ ] Ouvrir et vérifier explicitement dans Netlify la branche, la commande de build, le dossier de publication, les redirects SPA et les variables non sensibles
+- [ ] Tester `orders.create`, `stores.deactivate`, `inventory.adjust` et `organization.create` via `appRouter.createCaller`
+- [ ] Tester les erreurs `FORBIDDEN`, `PRECONDITION_FAILED`, `BAD_REQUEST` et `SERVICE_UNAVAILABLE` des procédures protégées
+- [ ] Tester qu’une ressource d’un autre tenant n’est ni lisible ni modifiable via les procédures métier

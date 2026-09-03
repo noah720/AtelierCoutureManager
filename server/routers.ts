@@ -8,13 +8,17 @@ import { and, eq } from "drizzle-orm";
 import { getDb, getOperationalSummary, getOrganizationForUser, getOrganizationIdForUser, listCustomers, listInventory, listOrders, listProducts, listStores, listVariants } from "./db";
 import { customers, inventory, orders, organizationMembers, organizations, products, stores } from "../drizzle/schema";
 
+export function assertAllowedRole(role: "owner" | "manager" | "staff", allowedRoles: Array<"owner" | "manager" | "staff">) {
+  if (!allowedRoles.includes(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Votre rôle ne permet pas cette action." });
+}
+
 async function requireOrganization(userId: number, allowedRoles: Array<"owner" | "manager" | "staff"> = ["owner", "manager", "staff"]) {
   const db = await getDb();
   if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
   const membership = await db.select({ organizationId: organizationMembers.organizationId, role: organizationMembers.role }).from(organizationMembers).where(eq(organizationMembers.userId, userId)).limit(1);
   const current = membership[0];
   if (!current) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Aucune marque n’est encore associée à ce compte." });
-  if (!allowedRoles.includes(current.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Votre rôle ne permet pas cette action." });
+  assertAllowedRole(current.role, allowedRoles);
   return current.organizationId;
 }
 
