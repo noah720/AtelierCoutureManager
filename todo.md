@@ -42,6 +42,9 @@
 - [x] Tester `orders.create`, `stores.deactivate`, `inventory.adjust` et `organization.create` via `appRouter.createCaller`
 - [x] Tester les erreurs `FORBIDDEN`, `PRECONDITION_FAILED`, `BAD_REQUEST` et `SERVICE_UNAVAILABLE` des procédures protégées
 - [ ] Tester qu’une ressource d’un autre tenant n’est ni lisible ni modifiable via les procédures métier
-- [ ] Ajouter un état de chargement réel pour les KPIs et les commandes récentes du tableau de bord
-- [ ] Afficher un état vide explicite quand aucune commande récente n’existe
+- [x] Ajouter un état de chargement réel pour les KPIs et les commandes récentes du tableau de bord
+- [x] Afficher un état vide explicite quand aucune commande récente n’existe
 - [ ] Distinguer le mode aperçu, l’absence de marque, l’erreur tRPC et l’état non authentifié
+- [ ] Afficher un état d’erreur distinct quand `summaryQuery` ou `ordersQuery` échouent, sans afficher de fausses données d’aperçu
+- [ ] Distinguer explicitement dans `Home.tsx` l’utilisateur non authentifié, l’absence de marque, l’erreur tRPC et le mode aperçu volontaire
+- [ ] Ne marquer le branchement complet du tableau de bord qu’après séparation réelle des états

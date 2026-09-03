@@ -55,15 +55,17 @@ function formatDate() {
 }
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, loading: authLoading, error: authError, isAuthenticated } = useAuth();
   const [mobileNav, setMobileNav] = useState(false);
   const firstName = user?.name?.split(" ")[0] || "Mariam";
   const summaryQuery = trpc.dashboard.summary.useQuery(undefined, { enabled: Boolean(user) });
   const ordersQuery = trpc.orders.list.useQuery(undefined, { enabled: Boolean(user) });
   const summary = summaryQuery.data;
-  const dashboardLoading = Boolean(user) && (summaryQuery.isLoading || ordersQuery.isLoading);
-  const previewMode = !user || summaryQuery.isError;
-  const recentOrders = previewMode ? orders : (ordersQuery.data ?? []).slice(0, 4).map((order: any) => ({
+  const dashboardLoading = authLoading || (Boolean(user) && (summaryQuery.isLoading || ordersQuery.isLoading));
+  const noOrganization = summaryQuery.error?.data?.code === "PRECONDITION_FAILED";
+  const dashboardError = !authLoading && Boolean(isAuthenticated) && (summaryQuery.isError || ordersQuery.isError) && !noOrganization;
+  const previewMode = !authLoading && !isAuthenticated && !authError;
+  const recentOrders = previewMode ? orders : dashboardError || noOrganization ? [] : (ordersQuery.data ?? []).slice(0, 4).map((order: any) => ({
     id: order.reference || `CMD-${order.id}`,
     client: order.customerName || "Client non renseigné",
     store: order.storeName || "Boutique non renseignée",
@@ -134,10 +136,10 @@ export default function Home() {
           </div>
 
           <div className="mb-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Chiffre d'affaires" value={dashboardLoading ? "—" : summary ? Number(summary.sales).toLocaleString("fr-FR") : "4 285 000"} suffix="FCFA" change={dashboardLoading ? "Chargement" : "+12,8%"} trend="up" accent="dark" />
-            <StatCard label="Commandes" value={dashboardLoading ? "—" : summary ? String(summary.orders) : "128"} change={dashboardLoading ? "Chargement" : "+8,2%"} trend="up" />
-            <StatCard label="Produits en stock" value={dashboardLoading ? "—" : summary ? summary.stock.toLocaleString("fr-FR") : "1 249"} change={dashboardLoading ? "Chargement" : "-2,4%"} trend="down" />
-            <StatCard label="Nouveaux clients" value={dashboardLoading ? "—" : summary ? String(summary.customers) : "36"} change={dashboardLoading ? "Chargement" : "+18,6%"} trend="up" />
+            <StatCard label="Chiffre d'affaires" value={dashboardLoading || dashboardError || noOrganization ? "—" : previewMode ? "4 285 000" : summary ? Number(summary.sales).toLocaleString("fr-FR") : "—"} suffix="FCFA" change={dashboardLoading ? "Chargement" : dashboardError || noOrganization ? "Indisponible" : "+12,8%"} trend="up" accent="dark" />
+            <StatCard label="Commandes" value={dashboardLoading || dashboardError || noOrganization ? "—" : previewMode ? "128" : summary ? String(summary.orders) : "—"} change={dashboardLoading ? "Chargement" : dashboardError || noOrganization ? "Indisponible" : "+8,2%"} trend="up" />
+            <StatCard label="Produits en stock" value={dashboardLoading || dashboardError || noOrganization ? "—" : previewMode ? "1 249" : summary ? summary.stock.toLocaleString("fr-FR") : "—"} change={dashboardLoading ? "Chargement" : dashboardError || noOrganization ? "Indisponible" : "-2,4%"} trend="down" />
+            <StatCard label="Nouveaux clients" value={dashboardLoading || dashboardError || noOrganization ? "—" : previewMode ? "36" : summary ? String(summary.customers) : "—"} change={dashboardLoading ? "Chargement" : dashboardError || noOrganization ? "Indisponible" : "+18,6%"} trend="up" />
           </div>
 
           <div className="grid gap-5 xl:grid-cols-[1.45fr_1fr]">
@@ -154,7 +156,7 @@ export default function Home() {
 
           <section className="mt-5 rounded-2xl border border-[#e8e8e2] bg-white p-5 shadow-[0_8px_30px_rgba(43,45,37,0.025)] sm:p-6"><div className="mb-5 flex items-center justify-between"><div><h2 className="font-display text-[18px] font-semibold tracking-[-0.03em]">Commandes récentes</h2><p className="mt-1 text-xs text-[#969991]">Suivez les dernières commandes de vos boutiques</p></div><button className="rounded-lg border border-[#e6e6e0] px-3 py-2 text-[11px] font-bold text-[#777a73]">Voir toutes les commandes</button></div><div className="overflow-x-auto"><table className="w-full min-w-[680px] text-left"><thead><tr className="border-b border-[#eeeeea] text-[10px] font-bold uppercase tracking-[0.12em] text-[#a3a59e]"><th className="pb-3 pl-1">Commande</th><th className="pb-3">Client</th><th className="pb-3">Boutique</th><th className="pb-3">Montant</th><th className="pb-3">Statut</th><th className="pb-3"></th></tr></thead><tbody>{dashboardLoading ? <tr><td colSpan={6} className="py-12 text-center text-xs text-[#969991]">Chargement des commandes…</td></tr> : !previewMode && recentOrders.length === 0 ? <tr><td colSpan={6} className="py-12 text-center text-xs text-[#969991]">Aucune commande récente pour le moment.</td></tr> : recentOrders.map((order) => <tr key={order.id} className="border-b border-[#f1f1ed] last:border-0"><td className="py-4 pl-1 text-xs font-semibold">{order.id}</td><td className="py-4"><div className="flex items-center gap-2.5"><div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f0e7da] text-[9px] font-bold text-[#9e754c]">{order.initials}</div><span className="text-xs font-medium">{order.client}</span></div></td><td className="py-4 text-xs text-[#82857d]">{order.store}</td><td className="py-4 text-xs font-semibold">{order.amount}</td><td className="py-4"><span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${order.tone === "amber" ? "bg-[#fff0dc] text-[#b77b38]" : order.tone === "violet" ? "bg-[#eee9ff] text-[#6954c6]" : order.tone === "green" ? "bg-[#e3f4eb] text-[#428565]" : "bg-[#eff0ed] text-[#747870]"}`}>{order.status}</span></td><td className="py-4 text-right"><button className="text-[#aaaca5] hover:text-[#20231f]"><MoreHorizontal size={17} /></button></td></tr>)}</tbody></table></div></section>
 
-          <div className="mt-5 flex items-center justify-between rounded-2xl bg-[#e6eee4] px-5 py-4"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/80 text-[#65845d]"><CircleHelp size={17} /></div><p className="text-xs text-[#61705d]">Vous êtes en <strong>{summaryQuery.isError ? "mode aperçu" : summary ? "mode connecté" : "mode aperçu"}</strong>. {summaryQuery.isError ? "Créez votre première marque pour charger vos données réelles." : "Connectez votre compte pour accéder à vos données réelles."}</p></div><button onClick={() => startLogin()} className="hidden text-xs font-bold text-[#54704e] sm:block">Se connecter →</button></div>
+          <div className="mt-5 flex items-center justify-between rounded-2xl bg-[#e6eee4] px-5 py-4"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/80 text-[#65845d]"><CircleHelp size={17} /></div><p className="text-xs text-[#61705d]">{authLoading ? "Vérification de votre session…" : !isAuthenticated ? "Vous consultez un aperçu de l’espace marque." : noOrganization ? "Aucune marque n’est encore associée à ce compte." : dashboardError ? "Les données de votre marque sont temporairement indisponibles." : "Vous êtes en mode connecté."}</p></div><button onClick={() => startLogin()} className="hidden text-xs font-bold text-[#54704e] sm:block">Se connecter →</button></div>
         </div>
       </main>
     </div>
