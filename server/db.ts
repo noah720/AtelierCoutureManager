@@ -84,6 +84,12 @@ export async function listProducts(organizationId: number) {
   return db.select().from(products).where(eq(products.organizationId, organizationId)).orderBy(desc(products.createdAt));
 }
 
+export async function listOrders(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(orders).where(eq(orders.organizationId, organizationId)).orderBy(desc(orders.createdAt)).limit(100);
+}
+
 export async function getOperationalSummary(organizationId: number) {
   const db = await getDb();
   if (!db) return { sales: "0", orders: 0, stock: 0, customers: 0, recentOrders: [] };
