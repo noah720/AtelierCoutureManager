@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { getDb, getOperationalSummary, getOrganizationForUser, getOrganizationIdForUser, listCustomers, listInventory, listOrders, listProducts, listStores, listVariants } from "./db";
-import { customers, orders, organizationMembers, organizations, products, stores } from "../drizzle/schema";
+import { customers, inventory, orders, organizationMembers, organizations, products, stores } from "../drizzle/schema";
 
 async function requireOrganization(userId: number, allowedRoles: Array<"owner" | "manager" | "staff"> = ["owner", "manager", "staff"]) {
   const db = await getDb();
@@ -56,6 +56,13 @@ export const appRouter = router({
       const [store] = await db.insert(stores).values({ organizationId, name: input.name, city: input.city ?? null, address: input.address ?? null }).$returningId();
       return store;
     }),
+    deactivate: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
+      await db.update(stores).set({ isActive: false }).where(and(eq(stores.id, input.id), eq(stores.organizationId, organizationId)));
+      return { success: true } as const;
+    }),
   }),
 
   customers: router({
@@ -71,6 +78,13 @@ export const appRouter = router({
 
   inventory: router({
     list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listInventory)),
+    adjust: protectedProcedure.input(z.object({ id: z.number().int().positive(), quantity: z.number().int().min(0) })).mutation(async ({ ctx, input }) => {
+      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
+      await db.update(inventory).set({ quantity: input.quantity }).where(and(eq(inventory.id, input.id), eq(inventory.organizationId, organizationId)));
+      return { success: true } as const;
+    }),
   }),
 
   variants: router({
