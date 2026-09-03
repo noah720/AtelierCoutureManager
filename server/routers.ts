@@ -5,7 +5,7 @@ import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { getDb, getOperationalSummary, getOrganizationForUser, getOrganizationIdForUser, listCustomers, listOrders, listProducts, listStores } from "./db";
+import { getDb, getOperationalSummary, getOrganizationForUser, getOrganizationIdForUser, listCustomers, listOrders, listProducts, listStores, listVariants } from "./db";
 import { customers, organizationMembers, organizations, products, stores } from "../drizzle/schema";
 
 async function requireOrganization(userId: number, allowedRoles: Array<"owner" | "manager" | "staff"> = ["owner", "manager", "staff"]) {
@@ -67,6 +67,10 @@ export const appRouter = router({
       const [customer] = await db.insert(customers).values({ organizationId, firstName: input.firstName, lastName: input.lastName, email: input.email ?? null, phone: input.phone ?? null, city: input.city ?? null, measurements: input.measurements ?? null }).$returningId();
       return customer;
     }),
+  }),
+
+  variants: router({
+    list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listVariants)),
   }),
 
   orders: router({

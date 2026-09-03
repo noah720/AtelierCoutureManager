@@ -9,6 +9,7 @@ import {
   organizationMembers,
   organizations,
   products,
+  productVariants,
   stores,
   users,
 } from "../drizzle/schema";
@@ -82,6 +83,12 @@ export async function listProducts(organizationId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(products).where(eq(products.organizationId, organizationId)).orderBy(desc(products.createdAt));
+}
+
+export async function listVariants(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ variant: productVariants, product: products }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(eq(products.organizationId, organizationId)).orderBy(desc(productVariants.createdAt));
 }
 
 export async function listOrders(organizationId: number) {
