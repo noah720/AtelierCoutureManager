@@ -7,9 +7,9 @@
 - [x] Ajouter les helpers de base de données et les procédures tRPC protégées
 - [ ] Construire le layout de tableau de bord avec navigation métier
 - [ ] Construire le tableau de bord opérationnel avec ventes, commandes, stock et activité récente
-- [ ] Ajouter la gestion des boutiques ou établissements
-- [ ] Ajouter la gestion des fiches clients et mensurations
-- [ ] Ajouter la gestion du catalogue, variantes, prix et stock
+- [x] Ajouter la gestion des boutiques ou établissements
+- [x] Ajouter la gestion des fiches clients et mensurations
+- [x] Ajouter la gestion du catalogue, variantes, prix et stock
 - [ ] Ajouter la création et le suivi des commandes avec lignes et statuts
 - [ ] Ajouter les états de chargement, erreurs, états vides et accessibilité responsive
 - [ ] Ajouter ou mettre à jour les tests Vitest des flux serveur et de l’isolation tenant
@@ -34,3 +34,6 @@
 - [ ] Vérifier explicitement les secrets requis pour OAuth, sessions et publication Netlify
 - [ ] Revalider l’accès Netlify depuis l’intégration connectée et identifier le site AtelierManager
 - [ ] Vérifier les réglages Netlify sans déclencher la mise en production
+- [ ] Implémenter l’édition, l’activation et la suppression sécurisée des boutiques avec UI et procédures tRPC
+- [ ] Ajouter les fiches clients détaillées avec mensurations et notes consultables et modifiables
+- [ ] Implémenter les variantes produit, les niveaux de stock par établissement et les ajustements d’inventaire
