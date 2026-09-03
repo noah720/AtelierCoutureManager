@@ -42,3 +42,6 @@
 - [x] Tester `orders.create`, `stores.deactivate`, `inventory.adjust` et `organization.create` via `appRouter.createCaller`
 - [x] Tester les erreurs `FORBIDDEN`, `PRECONDITION_FAILED`, `BAD_REQUEST` et `SERVICE_UNAVAILABLE` des procédures protégées
 - [ ] Tester qu’une ressource d’un autre tenant n’est ni lisible ni modifiable via les procédures métier
+- [ ] Ajouter un état de chargement réel pour les KPIs et les commandes récentes du tableau de bord
+- [ ] Afficher un état vide explicite quand aucune commande récente n’existe
+- [ ] Distinguer le mode aperçu, l’absence de marque, l’erreur tRPC et l’état non authentifié
