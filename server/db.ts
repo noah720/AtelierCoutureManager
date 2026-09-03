@@ -85,6 +85,12 @@ export async function listProducts(organizationId: number) {
   return db.select().from(products).where(eq(products.organizationId, organizationId)).orderBy(desc(products.createdAt));
 }
 
+export async function listInventory(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(inventory).where(eq(inventory.organizationId, organizationId)).orderBy(desc(inventory.updatedAt));
+}
+
 export async function listVariants(organizationId: number) {
   const db = await getDb();
   if (!db) return [];
