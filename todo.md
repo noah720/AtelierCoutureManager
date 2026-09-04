@@ -2,7 +2,7 @@
 
 - [x] Définir la direction visuelle et les tokens de design de l’application
 - [x] Mettre en place le modèle multi-tenant des marques et l’isolation des données
-- [ ] Ajouter les rôles et permissions d’accès par marque
+- [x] Ajouter les rôles et permissions d’accès par marque
 - [ ] Créer le schéma Neon/Drizzle pour marques, établissements, clients, produits, variantes, stock et commandes
 - [x] Ajouter les helpers de base de données et les procédures tRPC protégées
 - [ ] Construire le layout de tableau de bord avec navigation métier
@@ -12,7 +12,7 @@
 - [x] Ajouter la gestion du catalogue, variantes, prix et stock
 - [ ] Ajouter la création et le suivi des commandes avec lignes et statuts
 - [ ] Ajouter les états de chargement, erreurs, états vides et accessibilité responsive
-- [ ] Ajouter ou mettre à jour les tests Vitest des flux serveur et de l’isolation tenant
+- [x] Ajouter ou mettre à jour les tests Vitest des flux serveur et de l’isolation tenant
 - [ ] Configurer les variables d’environnement et documenter Neon, GitHub et Netlify
 - [x] Vérifier le build, les tests et le rendu desktop/mobile
 - [ ] Sauvegarder le checkpoint final et livrer la version MVP
@@ -41,10 +41,17 @@
 - [ ] Ouvrir et vérifier explicitement dans Netlify la branche, la commande de build, le dossier de publication, les redirects SPA et les variables non sensibles
 - [x] Tester `orders.create`, `stores.deactivate`, `inventory.adjust` et `organization.create` via `appRouter.createCaller`
 - [x] Tester les erreurs `FORBIDDEN`, `PRECONDITION_FAILED`, `BAD_REQUEST` et `SERVICE_UNAVAILABLE` des procédures protégées
-- [ ] Tester qu’une ressource d’un autre tenant n’est ni lisible ni modifiable via les procédures métier
+- [x] Tester qu’une ressource d’un autre tenant n’est ni lisible ni modifiable via les procédures métier
 - [x] Ajouter un état de chargement réel pour les KPIs et les commandes récentes du tableau de bord
 - [x] Afficher un état vide explicite quand aucune commande récente n’existe
-- [ ] Distinguer le mode aperçu, l’absence de marque, l’erreur tRPC et l’état non authentifié
-- [ ] Afficher un état d’erreur distinct quand `summaryQuery` ou `ordersQuery` échouent, sans afficher de fausses données d’aperçu
-- [ ] Distinguer explicitement dans `Home.tsx` l’utilisateur non authentifié, l’absence de marque, l’erreur tRPC et le mode aperçu volontaire
-- [ ] Ne marquer le branchement complet du tableau de bord qu’après séparation réelle des états
+- [x] Distinguer le mode aperçu, l’absence de marque, l’erreur tRPC et l’état non authentifié
+- [x] Afficher un état d’erreur distinct quand `summaryQuery` ou `ordersQuery` échouent, sans afficher de fausses données d’aperçu
+- [x] Distinguer explicitement dans `Home.tsx` l’utilisateur non authentifié, l’absence de marque, l’erreur tRPC et le mode aperçu volontaire
+- [x] Ne marquer le branchement complet du tableau de bord qu’après séparation réelle des états
+- [ ] Brancher l’activité récente du dashboard sur des données réelles ou supprimer le placeholder statique
+- [ ] Ajouter les lignes de commande `orderItems` au flux de création et de consultation des commandes
+- [ ] Ajouter la mise à jour des statuts de commande avec contrôle de rôle et tenant
+- [ ] Ajouter un état d’erreur explicite pour l’inventaire et revoir loading/error/empty/accessibility
+- [ ] Ajouter les actions UI de désactivation et suppression sécurisée des boutiques
+- [ ] Créer une fiche client détaillée affichant mensurations et notes avec consultation et modification
+- [ ] Ajouter l’interface de gestion des variantes et le flux UI d’ajustement d’inventaire
