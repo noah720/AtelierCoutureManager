@@ -60,6 +60,13 @@ export const appRouter = router({
       const [store] = await db.insert(stores).values({ organizationId, name: input.name, city: input.city ?? null, address: input.address ?? null }).$returningId();
       return store;
     }),
+    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), name: z.string().min(2).max(160), city: z.string().max(100).optional(), address: z.string().max(240).optional() })).mutation(async ({ ctx, input }) => {
+      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
+      const result = await db.update(stores).set({ name: input.name, city: input.city ?? null, address: input.address ?? null }).where(and(eq(stores.id, input.id), eq(stores.organizationId, organizationId)));
+      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
+    }),
     deactivate: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
       const db = await getDb();
@@ -71,12 +78,19 @@ export const appRouter = router({
 
   customers: router({
     list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listCustomers)),
-    create: protectedProcedure.input(z.object({ firstName: z.string().min(1).max(80), lastName: z.string().min(1).max(80), email: z.string().email().optional(), phone: z.string().max(40).optional(), city: z.string().max(100).optional(), measurements: z.string().max(2000).optional() })).mutation(async ({ ctx, input }) => {
+    create: protectedProcedure.input(z.object({ firstName: z.string().min(1).max(80), lastName: z.string().min(1).max(80), email: z.string().email().optional(), phone: z.string().max(40).optional(), city: z.string().max(100).optional(), measurements: z.string().max(2000).optional(), notes: z.string().max(4000).optional() })).mutation(async ({ ctx, input }) => {
       const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE" });
-      const [customer] = await db.insert(customers).values({ organizationId, firstName: input.firstName, lastName: input.lastName, email: input.email ?? null, phone: input.phone ?? null, city: input.city ?? null, measurements: input.measurements ?? null }).$returningId();
+      const [customer] = await db.insert(customers).values({ organizationId, firstName: input.firstName, lastName: input.lastName, email: input.email ?? null, phone: input.phone ?? null, city: input.city ?? null, measurements: input.measurements ?? null, notes: input.notes ?? null }).$returningId();
       return customer;
+    }),
+    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), firstName: z.string().min(1).max(80), lastName: z.string().min(1).max(80), email: z.string().email().optional(), phone: z.string().max(40).optional(), city: z.string().max(100).optional(), measurements: z.string().max(2000).optional(), notes: z.string().max(4000).optional() })).mutation(async ({ ctx, input }) => {
+      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE" });
+      const result = await db.update(customers).set({ firstName: input.firstName, lastName: input.lastName, email: input.email ?? null, phone: input.phone ?? null, city: input.city ?? null, measurements: input.measurements ?? null, notes: input.notes ?? null }).where(and(eq(customers.id, input.id), eq(customers.organizationId, organizationId)));
+      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
     }),
   }),
 
