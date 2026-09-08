@@ -23,6 +23,11 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     try {
+      localStorage.removeItem("app_session_token");
+    } catch {
+      /* stockage indisponible */
+    }
+    try {
       await logoutMutation.mutateAsync();
     } catch (error: unknown) {
       if (error instanceof TRPCClientError && error.data?.code === "UNAUTHORIZED") {

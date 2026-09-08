@@ -44,9 +44,17 @@ export async function createSessionToken(userId: number): Promise<string> {
 }
 
 export async function readSessionUserId(req: Request): Promise<number | null> {
+  // 1) Cookie de session (accès direct, cookies acceptés).
   const header = req.headers.cookie ?? "";
   const token = parseCookieHeader(header)[SESSION_COOKIE];
-  if (!token) return null;
+  if (token) return readTokenUserId(token);
+  // 2) En-tête Authorization: Bearer (aperçu en iframe avec cookies tiers bloqués).
+  const auth = req.headers.authorization;
+  if (auth?.startsWith("Bearer ")) return readTokenUserId(auth.slice(7));
+  return null;
+}
+
+export async function readTokenUserId(token: string): Promise<number | null> {
   try {
     const { payload } = await jwtVerify(token, secretKey());
     const id = Number(payload.sub);

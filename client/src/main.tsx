@@ -17,6 +17,17 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
+      headers: () => {
+        // Contextes où les cookies tiers sont bloqués (aperçu en iframe) :
+        // on transmet le jeton de session via Authorization.
+        let token: string | null = null;
+        try {
+          token = localStorage.getItem("app_session_token");
+        } catch {
+          token = null;
+        }
+        return token ? { Authorization: `Bearer ${token}` } : {};
+      },
       fetch(input, init) {
         return globalThis.fetch(input, { ...(init ?? {}), credentials: "include" });
       },

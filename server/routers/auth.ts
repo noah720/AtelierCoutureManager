@@ -46,7 +46,9 @@ export const authRouter = router({
         .returning({ id: users.id, email: users.email, name: users.name, role: users.role, openId: users.openId });
       const token = await createSessionToken(created.id);
       ctx.res.cookie("app_session_id", token, sessionCookieOptions(ctx.req));
-      return publicUser(created);
+      // Le token est aussi renvoyé pour l'en-tête Authorization (contexts
+      // sans cookies tiers, ex. aperçu en iframe).
+      return { ...publicUser(created), token };
     }),
 
   login: publicProcedure
@@ -61,7 +63,7 @@ export const authRouter = router({
       await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
       const token = await createSessionToken(user.id);
       ctx.res.cookie("app_session_id", token, sessionCookieOptions(ctx.req));
-      return publicUser(user);
+      return { ...publicUser(user), token };
     }),
 
   logout: publicProcedure.mutation(({ ctx }) => {

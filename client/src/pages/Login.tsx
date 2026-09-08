@@ -21,8 +21,18 @@ export default function Login() {
   const [values, setValues] = useState({ name: "", email: "", password: "" });
   const [pending, setPending] = useState(false);
 
+  const saveToken = (data?: { token?: string }) => {
+    if (!data?.token) return;
+    try {
+      localStorage.setItem("app_session_token", data.token);
+    } catch {
+      /* stockage indisponible : le cookie reste utilisé */
+    }
+  };
+
   const login = trpc.auth.login.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      saveToken(data);
       await utils.auth.me.invalidate();
       toast.success("Connexion réussie. Bienvenue !");
       navigate("/", { replace: true });
@@ -31,7 +41,8 @@ export default function Login() {
   });
 
   const register = trpc.auth.register.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      saveToken(data);
       await utils.auth.me.invalidate();
       toast.success("Compte créé. Bienvenue sur AtelierManager !");
       navigate("/", { replace: true });
