@@ -98,7 +98,7 @@ Les migrations sont versionnées dans `drizzle/` (`pnpm db:generate` après tout
 
 1. Intégration Moneroo réelle (mobile money, carte, PayPal) + reversement des ventes — la caisse de simulation est déjà en place (`MONEROO_API_KEY` + `MONEROO_WEBHOOK_SECRET`).
 2. Pointage par géolocalisation et horaires détaillés (majoration 20 % hors horaires).
-4. Primes automatiques planifiées (hebdo / mensuel / annuel / fidélité 2 %), remboursements partiels.
+4. Primes automatiques planifiées (hebdo / mensuel / annuel / fidélité 2 %), remboursements partiels en pourcentage avec écriture de réversion.
 
 ## Boutique en ligne (formule complète)
 
@@ -157,3 +157,11 @@ L'onglet **Comptabilité** génère les écritures automatiques aux normes **SYS
 - **Pointage géolocalisé** : les boutons Arrivée/Sortie captent la position du téléphone (navigator.geolocation) et la confrontent au point de vente (rayon de tolérance configurable, 150 m par défaut — coordonnées réelles Lomé/Douala en démo). Hors zone → incident sur la session ; retard au pointage d'ouverture → signalé.
 - **Oublis de pointage** : une session encore ouverte plus de 15 minutes après la fin du créneau est **clôturée automatiquement** avec incident (bouton « Détecter les oublis », détection à 15 h d'ouverture continue hors horaire défini).
 - **Primes planifiées** (exécution idempotente par clé de période) : meilleur vendeur **hebdomadaire** (5 000 F), **mensuel** (10 000 F), **fidélité trimestrielle** (2 % du CA individuel dès 50 000 F), **prime annuelle voiture/moto** (25 % du salaire de base, chaque employé actif). Aperçu avant exécution, aucune double attribution possible.
+
+## Remboursements, onboarding marques & support admin (points 12 & 15)
+
+- **Remboursements partiels en %** (`sales.refund`) : depuis Opérations → « Ventes & remboursements », remboursement de 1 à 100 % du reste dû sur une vente, avec motif. Génère automatiquement la sortie de trésorerie (caisse de la boutique si elle existe, sinon caisse centrale) puis, à la synchronisation comptable, l'écriture de réversion SYSCOHADA « RMB-XXXX » (débit 701 / crédit compte de trésorerie), idempotente. La vente affiche son taux remboursé et passe en « Remboursée » à 100 %.
+- **Parcours d'onboarding des nouvelles marques** (`/onboarding`) : assistant en 3 étapes (marque + formule 50 000 / 150 000 / 250 000 F CFA, premier point de vente avec devise, récapitulatif). Crée le compte, la marque en essai gratuit 30 jours et le premier point de vente ; les utilisateurs sans marque sont redirigés automatiquement vers l'assistant.
+- **Réponse support côté admin ENVOL** : l'administration voit tous les tickets, répond en ligne (le ticket passe « en cours », réponse signée « Équipe ENVOL ») puis clôture ; le badge d'état suit ouvert / en cours / résolu / fermé.
+
+## Pointage géolocalisé, horaires & primes planifiées (point 14)

@@ -20,7 +20,7 @@ import {
   Scale,
   Receipt,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 
 const navSections = [
@@ -43,10 +43,17 @@ const navSections = [
 
 export default function AppShell({ title, subtitle, actions, children }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode }) {
   const { user, logout } = useAuth();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [mobileNav, setMobileNav] = useState(false);
   const orgQuery = trpc.organization.current.useQuery();
   const organization = orgQuery.data;
+
+  // Onboarding (point 15) : un compte sans marque est guidé vers la création.
+  useEffect(() => {
+    if (!orgQuery.isLoading && !orgQuery.isFetching && orgQuery.data === null && user && user.role !== "admin" && location !== "/onboarding") {
+      navigate("/onboarding", { replace: true });
+    }
+  }, [orgQuery.isLoading, orgQuery.isFetching, orgQuery.data, user, location, navigate]);
 
   const initials = (user?.name ?? "U")
     .split(" ")

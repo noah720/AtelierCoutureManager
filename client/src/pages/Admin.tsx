@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatXof } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { Building2, CheckCircle2, Pause, Play, ShieldCheck, XCircle } from "lucide-react";
+import { Building2, CheckCircle2, LifeBuoy, MessageSquare, Pause, Play, ShieldCheck, XCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -36,7 +36,6 @@ export default function Admin() {
   const statsQuery = trpc.admin.stats.useQuery(undefined, { enabled: meQuery.data?.role === "admin" });
   const orgsQuery = trpc.admin.organizations.useQuery(undefined, { enabled: meQuery.data?.role === "admin" });
   const pendingQuery = trpc.admin.subscriptions.pendingPayments.useQuery(undefined, { enabled: meQuery.data?.role === "admin" });
-  const [selectedTicket, setSelectedTicket] = useState<number | null>(null);
 
   const validate = trpc.admin.subscriptions.validatePayment.useMutation({
     onSuccess: () => {
@@ -153,6 +152,106 @@ export default function Admin() {
           )}
         </CardContent>
       </Card>
+
+      <SupportSection />
     </AppShell>
+  );
+}
+
+const TICKET_STATUS: Record<string, { label: string; tone: string }> = {
+  ouvert: { label: "Ouvert", tone: "bg-[#fff0db] text-[#c27b2c]" },
+  en_cours: { label: "En cours", tone: "bg-[#eee8ff] text-[#6954c6]" },
+  resolu: { label: "Résolu", tone: "bg-[#e2f4ee] text-[#2d8a70]" },
+  ferme: { label: "Fermé", tone: "bg-[#f2f2ed] text-[#60635c]" },
+};
+
+/** Assistance côté ENVOL : répondre aux demandes et les clôturer (point 12). */
+function SupportSection() {
+  const utils = trpc.useUtils();
+  const ticketsQuery = trpc.support.listAll.useQuery();
+  const [replyFor, setReplyFor] = useState<number | null>(null);
+  const [draft, setDraft] = useState("");
+
+  const respond = trpc.support.respond.useMutation({
+    onSuccess: () => {
+      toast.success("Réponse envoyée — le ticket passe en cours.");
+      setReplyFor(null);
+      setDraft("");
+      utils.support.listAll.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const close = trpc.support.close.useMutation({
+    onSuccess: () => {
+      toast.success("Demande clôturée.");
+      utils.support.listAll.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const tickets = ticketsQuery.data ?? [];
+
+  return (
+    <Card className="border-[#e8e8e2] shadow-[0_8px_30px_rgba(43,45,37,0.03)]">
+      <CardHeader className="border-b border-[#f0f0eb] px-5 py-4">
+        <CardTitle className="flex items-center gap-2 font-display text-lg font-semibold tracking-[-0.03em]">
+          <LifeBuoy size={16} className="text-[#2d8a70]" /> Demandes d'assistance ({tickets.filter((ticket) => ticket.status !== "ferme").length} en cours)
+        </CardTitle>
+        <p className="mt-1 text-[11px] text-[#969991]">Répondez aux marques depuis cette page — elles voient vos réponses dans leur assistance.</p>
+      </CardHeader>
+      <CardContent className="p-0">
+        {tickets.length === 0 ? (
+          <p className="px-5 py-10 text-center text-xs text-[#969991]">Aucune demande d'assistance pour le moment.</p>
+        ) : (
+          <div className="divide-y divide-[#f0f0eb]">
+            {tickets.map((ticket) => {
+              const status = TICKET_STATUS[ticket.status] ?? TICKET_STATUS.ouvert;
+              return (
+                <div key={ticket.id} className="px-5 py-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold">{ticket.subject}</span>
+                    <Badge className={`border-0 text-[9px] font-bold ${status.tone}`}>{status.label}</Badge>
+                    <span className="text-[11px] text-[#969991]">
+                      {ticket.reporterName} · {new Date(ticket.createdAt).toLocaleString("fr-FR")}
+                    </span>
+                    {ticket.pageUrl && <span className="text-[10px] text-[#a6a8a1]">({ticket.pageUrl})</span>}
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap rounded-xl bg-[#f7f7f5] px-3 py-2 text-xs text-[#3a3d37]">{ticket.message}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {replyFor === ticket.id ? (
+                      <>
+                        <input
+                          value={draft}
+                          onChange={(event) => setDraft(event.target.value)}
+                          placeholder="Votre réponse…"
+                          className="min-w-0 flex-1 rounded-lg border border-[#e4e5df] px-3 py-1.5 text-xs outline-none focus:border-[#20231f]"
+                        />
+                        <Button size="sm" className="rounded-lg bg-[#20231f] text-[10px] font-semibold text-white" disabled={respond.isPending || draft.trim().length === 0} onClick={() => respond.mutate({ ticketId: ticket.id, message: draft })}>
+                          Envoyer
+                        </Button>
+                        <Button size="sm" variant="ghost" className="rounded-lg text-[10px]" onClick={() => { setReplyFor(null); setDraft(""); }}>
+                          Annuler
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button size="sm" variant="outline" className="rounded-lg text-[10px]" onClick={() => setReplyFor(ticket.id)}>
+                          <MessageSquare size={11} className="mr-1" /> Répondre
+                        </Button>
+                        {ticket.status !== "ferme" && (
+                          <Button size="sm" variant="ghost" className="rounded-lg text-[10px] text-[#2d8a70]" disabled={close.isPending} onClick={() => close.mutate({ ticketId: ticket.id })}>
+                            <CheckCircle2 size={11} className="mr-1" /> Clôturer
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

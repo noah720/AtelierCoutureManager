@@ -27,17 +27,14 @@
 - [x] Rapprochement bancaire (11) : lignes de relevé, rapprochement automatique (montant/sens/±7 jours), association manuelle, écarts signalés (point 11)
 - [x] Pointage géolocalisé + horaires (14.2) : géorepérage haversine par point de vente (rayon configurable), horaires hebdomadaires par employé, majoration +20 % des heures hors créneau, retard signalé, oubli de pointage clôturé automatiquement (> 15 min), résumé mensuel des majorations
 - [x] Primes planifiées (14.3) : meilleur vendeur hebdo (5 000 F) et mensuel (10 000 F), fidélité trimestrielle (2 % du CA dès 50 000 F), prime annuelle voiture/moto (25 % du salaire), exécution idempotente par clé de période
+- [x] Remboursements partiels en % (15) : `sales.refund` (1–100 % du reste dû, motif), sortie de trésorerie auto + écriture de réversion SYSCOHADA RMB (701 / trésorerie) idempotente, badge « Remboursé X % » dans Opérations
+- [x] Onboarding des nouvelles marques (15) : assistant /onboarding en 3 étapes (marque + formule 50k/150k/250k, premier point de vente + devise, récap), essai 30 j, redirection auto des comptes sans marque
+- [x] Support admin ENVOL (12) : vue de tous les tickets, réponse en ligne (ticket → en cours, signée Équipe ENVOL), clôture, badges d'état
 - [x] Reçus clients PDF + e-mail (13) : générateur PDF sans dépendance (articles, livraison, parrainage, net à payer, reste à payer), téléchargement depuis la Caisse (ventes) et Opérations (commandes en ligne payées), envoi Resend/SMTP ou simulation journalisée
 
 ## À faire (prochaines étapes)
 
-- [ ] Boutique en ligne publique (vitrine, panier, tailles/gammes/couleurs ou sur mesure) branchée sur les stocks agrégés multi-boutiques
 - [ ] Intégration Moneroo réelle (mobile money, carte, PayPal) et reversement des ventes aux marques
 - [ ] Frais de livraison par zone/ville + calcul DHL au panier
-- [ ] Reçu client en PDF envoyé par e-mail à la clôture de la vente
-- [ ] Vérification que les comptes en banque correspondent à la trésorerie saisie (rapprochement)
-- [ ] Assistant Commercial & Marketing IA (WhatsApp/Facebook/Instagram, modes brouillon / semi-autonome / autonome)
-- [ ] Pointage par géolocalisation + horaires détaillés et majoration 20 % hors horaires
-- [ ] Prime annuelle (voiture/moto) et fidélité trimestrielle (2 %)
 - [ ] Gestion documentaire sécurisée (pièces d’identité, documents d’existence) via stockage externe
 - [ ] Configuration finale Netlify/Neon + domaine de la plateforme et domaines personnalisés des marques

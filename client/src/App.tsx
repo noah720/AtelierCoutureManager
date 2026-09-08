@@ -15,6 +15,7 @@ import Purchases from "./pages/Purchases";
 import Settings from "./pages/Settings";
 import Assistant from "./pages/Assistant";
 import Accounting from "./pages/Accounting";
+import Onboarding from "./pages/Onboarding";
 import Staff from "./pages/Staff";
 import Support from "./pages/Support";
 import Billing from "./pages/Billing";
@@ -29,6 +30,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
+      <Route path="/onboarding" component={Onboarding} />
       <Route path="/caisse" component={Caisse} />
       <Route path="/operations/:section">{(params) => <Operations section={params.section} />}</Route>
       <Route path="/operations">{() => <Operations />}</Route>

@@ -77,7 +77,7 @@ export async function syncAccounting(organizationId: number): Promise<{ created:
   const accountNumberById = new Map<number, string>();
   for (const account of treasuryRows) accountNumberById.set(account.id, TREASURY_TYPE_ACCOUNT[account.type] ?? "585");
 
-  const details: Record<string, number> = { ventes: 0, achats: 0, reglements_achats: 0, ventes_en_ligne: 0, mouvements: 0 };
+  const details: Record<string, number> = { ventes: 0, achats: 0, reglements_achats: 0, ventes_en_ligne: 0, remboursements: 0, mouvements: 0 };
   let created = 0;
 
   /* ---- 1. Ventes : encaissements par compte + reste client + produits ---- */
@@ -258,6 +258,38 @@ export async function syncAccounting(organizationId: number): Promise<{ created:
     if (entry) {
       created += 1;
       details.ventes_en_ligne += 1;
+    }
+  }
+
+  /* ---- 3b. Remboursements (réversion de produit) : D 701 / C trésorerie ---- */
+  const refundMovements = await db
+    .select()
+    .from(treasuryMovements)
+    .where(and(eq(treasuryMovements.organizationId, organizationId), eq(treasuryMovements.refType, "refund")));
+  const journalizedRefunds = new Set(
+    (await db.select({ refId: accountingEntries.refId }).from(accountingEntries).where(and(eq(accountingEntries.organizationId, organizationId), eq(accountingEntries.refType, "refund")))).map((row) => row.refId),
+  );
+  for (const movement of refundMovements) {
+    if (journalizedRefunds.has(movement.id)) continue;
+    const accountNumber = accountNumberById.get(movement.accountId);
+    if (!accountNumber) continue;
+    const amountOrg = toOrg(Number(movement.amount), movement.currency);
+    const entry = await insertEntry(db, {
+      organizationId,
+      journalCode: "OD",
+      reference: `RMB-${String(movement.id).padStart(4, "0")}`,
+      refType: "refund",
+      refId: movement.id,
+      label: movement.label.slice(0, 240),
+      date: movement.createdAt,
+      raw: [
+        { accountNumber: "701", debit: amountOrg },
+        { accountNumber, credit: amountOrg },
+      ],
+    });
+    if (entry) {
+      created += 1;
+      details.remboursements += 1;
     }
   }
 

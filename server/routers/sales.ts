@@ -326,6 +326,48 @@ export const salesRouter = router({
         .returning({ id: sales.id });
       return { success: result.length > 0 } as const;
     }),
+
+  /**
+   * Remboursement partiel en pourcentage (point 15) : la sortie d'argent est
+   * enregistrée dans la caisse de la boutique de la vente, le cumul
+   * remboursé ne peut jamais dépasser le total de la vente.
+   */
+  refund: protectedProcedure
+    .input(z.object({ id: z.number().int().positive(), percent: z.number().min(1).max(100), reason: z.string().max(300).optional(), accountId: z.number().int().positive().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const { organizationId } = await requireOrganization(ctx.user.id, ["owner", "manager"]);
+      const db = await requireDb();
+      const [sale] = await db.select().from(sales).where(and(eq(sales.id, input.id), eq(sales.organizationId, organizationId))).limit(1);
+      if (!sale) throw new TRPCError({ code: "NOT_FOUND", message: "Vente introuvable." });
+      if (sale.status === "annulee") throw new TRPCError({ code: "BAD_REQUEST", message: "Une vente annulée ne peut pas être remboursée." });
+      const refundable = Number(sale.totalAmount) - Number(sale.refundedAmount);
+      if (refundable <= 0.005) throw new TRPCError({ code: "BAD_REQUEST", message: "Cette vente est déjà entièrement remboursée." });
+      const amount = Math.min(refundable, Math.round((Number(sale.totalAmount) * input.percent) / 100));
+      if (amount <= 0.005) throw new TRPCError({ code: "BAD_REQUEST", message: "Montant du remboursement nul." });
+      // Compte de trésorerie : caisse de la boutique de la vente (ou compte fourni).
+      const accounts = await db.select().from(treasuryAccounts).where(eq(treasuryAccounts.organizationId, organizationId));
+      const account = input.accountId
+        ? accounts.find((row) => row.id === input.accountId)
+        : accounts.find((row) => row.type === "caisse_boutique" && row.storeId === sale.storeId) ?? accounts.find((row) => row.type === "caisse_centrale") ?? accounts[0];
+      if (!account) throw new TRPCError({ code: "BAD_REQUEST", message: "Aucun compte de trésorerie disponible." });
+      const rates = await loadRates();
+      const amountInAccount = Math.round(convert(amount, sale.currency, account.currency, rates) * 100) / 100;
+      await db.insert(treasuryMovements).values({
+        organizationId,
+        accountId: account.id,
+        direction: "sortie",
+        amount: String(amountInAccount),
+        currency: account.currency,
+        category: "vente",
+        refType: "refund",
+        refId: sale.id,
+        label: `Remboursement ${input.percent} % — ${sale.reference}${input.reason ? ` (${input.reason})` : ""}`.slice(0, 240),
+        createdByUserId: ctx.user.id,
+      });
+      const refunded = Math.round((Number(sale.refundedAmount) + amount) * 100) / 100;
+      await db.update(sales).set({ refundedAmount: refunded.toFixed(2) }).where(eq(sales.id, sale.id));
+      return { success: true, refundedAmount: refunded, total: Number(sale.totalAmount), fullyRefunded: refunded >= Number(sale.totalAmount) - 0.005 } as const;
+    }),
 });
 
 /** Taux de change : consultation pour tous, mise à jour réservée à ENVOL. */

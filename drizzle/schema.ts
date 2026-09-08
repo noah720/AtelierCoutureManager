@@ -348,6 +348,8 @@ export const sales = pgTable(
     currency: currencyEnum("currency").default("XOF").notNull(),
     /** Code parrain appliqué (réduction client + commission affilié) */
     referralCode: varchar("referralCode", { length: 32 }),
+    /** Remboursement partiel cumulé (point 15) — jamais supérieur au total. */
+    refundedAmount: numeric("refundedAmount", { precision: 14, scale: 2 }).default("0").notNull(),
     status: saleStatusEnum("status").default("payee").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },

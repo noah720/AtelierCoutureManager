@@ -9,7 +9,7 @@ import { formatXof, GAMME_LABELS, GENRE_LABELS, ORDER_STATUS_LABELS, SIZES_ADULT
 import { trpc } from "@/lib/trpc";
 import { downloadBase64Pdf } from "@/lib/download";
 import { toast } from "sonner";
-import { Boxes, MapPin, Package, Pencil, Plus, Search, Store, Trash2, Users, X } from "lucide-react";
+import { Boxes, MapPin, Package, Pencil, Plus, Receipt, RotateCcw, Search, Store, Trash2, Users, X } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 
 const sections = [
@@ -17,6 +17,7 @@ const sections = [
   { key: "customers", label: "Clients", icon: Users },
   { key: "products", label: "Produits & stock", icon: Boxes },
   { key: "orders", label: "Commandes clients", icon: Package },
+  { key: "ventes", label: "Ventes & remboursements", icon: Receipt },
 ] as const;
 
 type SectionKey = (typeof sections)[number]["key"];
@@ -86,6 +87,8 @@ export default function Operations({ section = "stores" }: { section?: string })
 
       {active === "orders" ? (
         <OrdersList onOpenCreate={() => setOrderForm(true)} storesById={storesById} />
+      ) : active === "ventes" ? (
+        <SalesList />
       ) : (
         <Card className="border-[#e8e8e2] shadow-[0_8px_30px_rgba(43,45,37,0.025)]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-[#f0f0eb] px-5 py-5 sm:px-6">
@@ -478,6 +481,91 @@ function CustomerDetail({ customer, onClose }: { customer: any; onClose: () => v
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const SALE_STATUS_LABELS: Record<string, string> = { partielle: "Partielle", payee: "Payée", annulee: "Annulée" };
+
+/** Liste des ventes avec remboursement partiel en pourcentage (point 15). */
+function SalesList() {
+  const utils = trpc.useUtils();
+  const query = trpc.sales.list.useQuery();
+  const refund = trpc.sales.refund.useMutation({
+    onSuccess: (result) => {
+      toast.success(`Remboursement enregistré — ${formatXof(result.refundedAmount)} remboursés au total${result.fullyRefunded ? " (vente intégralement remboursée)" : ""}.`);
+      utils.sales.list.invalidate();
+      utils.treasury.accounts.invalidate();
+      utils.accounting.trialBalance.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const [search, setSearch] = useState("");
+
+  const sales = (query.data ?? []).filter((sale) => JSON.stringify(sale).toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <Card className="border-[#e8e8e2] shadow-[0_8px_30px_rgba(43,45,37,0.025)]">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-[#f0f0eb] px-5 py-5 sm:px-6">
+        <div>
+          <CardTitle className="font-display text-xl tracking-[-0.03em]">Ventes & remboursements</CardTitle>
+          <p className="mt-1 text-xs text-[#969991]">Remboursement partiel en pourcentage — la sortie est enregistrée en trésorerie et en comptabilité (réversion de produit).</p>
+        </div>
+        <div className="relative w-48">
+          <Search className="absolute left-3 top-2.5 text-[#a6a8a1]" size={14} />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher…" className="w-full rounded-xl border border-[#e4e5df] py-2 pl-9 pr-3 text-xs outline-none focus:border-[#20231f]" />
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        {sales.length === 0 ? (
+          <div className="px-6 py-16 text-center text-sm text-[#9a9c95]">Aucune vente enregistrée.</div>
+        ) : (
+          <div className="divide-y divide-[#f0f0eb]">
+            {sales.map((sale) => {
+              const refunded = Number(sale.refundedAmount ?? 0);
+              const total = Number(sale.totalAmount);
+              const refundedPercent = Math.round((refunded / total) * 100);
+              return (
+                <div key={sale.id} className="flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">
+                      {sale.reference}
+                      <Badge className={`ml-2 border-0 text-[9px] font-bold ${sale.status === "annulee" ? "bg-[#fff0ed] text-[#b4604e]" : "bg-[#e2f4ee] text-[#2d8a70]"}`}>{SALE_STATUS_LABELS[sale.status] ?? sale.status}</Badge>
+                      {refunded > 0 && <Badge className="ml-1 border-0 bg-[#fff8e6] text-[9px] font-bold text-[#b98a1d]">Remboursé {refundedPercent} %</Badge>}
+                    </p>
+                    <p className="mt-1 text-xs text-[#979a92]">{new Date(sale.createdAt).toLocaleString("fr-FR")}{sale.referralCode ? ` · parrainage ${sale.referralCode}` : ""}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold">{formatXof(sale.totalAmount)}</p>
+                    {refunded > 0 && <p className="text-[10px] text-[#b4604e]">− {formatXof(refunded)}</p>}
+                  </div>
+                  {sale.status !== "annulee" && refunded < total - 0.005 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={refund.isPending}
+                      onClick={() => {
+                        const input = window.prompt(`Rembourser quel pourcentage de ${sale.reference} (${formatXof(total - refunded)} restant) ?`, "10");
+                        if (!input) return;
+                        const percent = Number(input.replace(",", "."));
+                        if (!Number.isFinite(percent) || percent < 1 || percent > 100) {
+                          toast.error("Pourcentage invalide (1 à 100).");
+                          return;
+                        }
+                        const reason = window.prompt("Motif du remboursement (facultatif) :", "") ?? undefined;
+                        refund.mutate({ id: sale.id, percent, reason: reason || undefined });
+                      }}
+                      className="rounded-lg text-[10px]"
+                    >
+                      <RotateCcw size={11} className="mr-1" /> Rembourser
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
