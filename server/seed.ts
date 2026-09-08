@@ -17,6 +17,7 @@ import {
   aiMessages,
   aiPosts,
   customers,
+  employeeSchedules,
   deliveryZones,
   employees,
   exchangeRates,
@@ -131,12 +132,12 @@ export async function seed(): Promise<void> {
   const storeRows = await db
     .insert(stores)
     .values([
-      { organizationId: orgId, name: "Atelier Kodjoviakopé", kind: "atelier", city: "Lomé", address: "Kodjoviakopé, Lomé, Togo", currency: "XOF" as const },
-      { organizationId: orgId, name: "Boutique Nyékonakpoè", kind: "boutique", city: "Lomé", address: "Nyékonakpoè, Lomé", currency: "XOF" as const },
-      { organizationId: orgId, name: "Boutique Hôtel 2 Février", kind: "boutique", city: "Lomé", address: "Bd du 13 Janvier, Lomé", currency: "XOF" as const },
-      { organizationId: orgId, name: "Boutique Agoè Minamadou", kind: "boutique", city: "Lomé", address: "Agoè Minamadou, Lomé", currency: "XOF" as const },
-      { organizationId: orgId, name: "Boutique Bonamoussadi", kind: "boutique", city: "Douala", address: "Bonamoussadi, Douala, Cameroun", currency: "XAF" as const },
-      { organizationId: orgId, name: "Boutique Bonapriso", kind: "boutique", city: "Douala", address: "Bonapriso, Douala, Cameroun", currency: "XAF" as const },
+      { organizationId: orgId, name: "Atelier Kodjoviakopé", kind: "atelier", city: "Lomé", address: "Kodjoviakopé, Lomé, Togo", currency: "XOF" as const, latitude: "6.1382", longitude: "1.2135", geofenceRadius: 200 },
+      { organizationId: orgId, name: "Boutique Nyékonakpoè", kind: "boutique", city: "Lomé", address: "Nyékonakpoè, Lomé", currency: "XOF" as const, latitude: "6.1735", longitude: "1.2247", geofenceRadius: 150 },
+      { organizationId: orgId, name: "Boutique Hôtel 2 Février", kind: "boutique", city: "Lomé", address: "Bd du 13 Janvier, Lomé", currency: "XOF" as const, latitude: "6.1297", longitude: "1.2424", geofenceRadius: 150 },
+      { organizationId: orgId, name: "Boutique Agoè Minamadou", kind: "boutique", city: "Lomé", address: "Agoè Minamadou, Lomé", currency: "XOF" as const, latitude: "6.1817", longitude: "1.2414", geofenceRadius: 150 },
+      { organizationId: orgId, name: "Boutique Bonamoussadi", kind: "boutique", city: "Douala", address: "Bonamoussadi, Douala, Cameroun", currency: "XAF" as const, latitude: "4.0872", longitude: "9.7380", geofenceRadius: 150 },
+      { organizationId: orgId, name: "Boutique Bonapriso", kind: "boutique", city: "Douala", address: "Bonapriso, Douala, Cameroun", currency: "XAF" as const, latitude: "4.0380", longitude: "9.6947", geofenceRadius: 150 },
     ])
     .returning({ id: stores.id, name: stores.name, kind: stores.kind, currency: stores.currency });
   const atelier = storeRows[0];
@@ -201,6 +202,19 @@ export async function seed(): Promise<void> {
   }
   const insertedEmployees = await db.insert(employees).values(employeeRows).returning({ id: employees.id, jobTitle: employees.jobTitle });
   const employeeByTitle = (title: string, index = 0) => insertedEmployees.filter((e) => e.jobTitle === title)[index]?.id ?? null;
+
+  // Horaires hebdomadaires par défaut (14.2) : lundi-samedi 08:00-19:00, dimanche repos
+  const scheduleRows = insertedEmployees.flatMap((employee) =>
+    Array.from({ length: 7 }, (_, dayOfWeek) => ({
+      organizationId: orgId,
+      employeeId: employee.id,
+      dayOfWeek,
+      startTime: "08:00",
+      endTime: "19:00",
+      active: dayOfWeek >= 1 && dayOfWeek <= 6,
+    })),
+  );
+  await db.insert(employeeSchedules).values(scheduleRows).onConflictDoNothing();
 
   // Catalogue (7.4) : 6 modèles × 4 gammes + versions enfant + accessoires
   type ProductInsert = typeof products.$inferInsert;

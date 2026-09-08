@@ -177,6 +177,11 @@ export const stores = pgTable("stores", {
   address: text("address"),
   currency: currencyEnum("currency").default("XOF").notNull(),
   isActive: boolean("isActive").default(true).notNull(),
+  /** Géolocalisation du point de vente (pointage 14.2) */
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+  /** Rayon de tolérance du pointage en mètres (défaut : 150 m). */
+  geofenceRadius: integer("geofenceRadius").default(150).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -528,18 +533,51 @@ export const attendanceSessions = pgTable("attendanceSessions", {
   checkOutAt: timestamp("checkOutAt"),
   locationOk: boolean("locationOk").default(true).notNull(),
   incident: text("incident"),
+  /** Géolocalisation du pointage (point 14.2) */
+  checkInLat: text("checkInLat"),
+  checkInLng: text("checkInLng"),
+  checkOutLat: text("checkOutLat"),
+  checkOutLng: text("checkOutLng"),
+  /** Minutes travaillées hors créneau horaire (majoration +20 %) */
+  outsideMinutes: integer("outsideMinutes").default(0).notNull(),
+  /** Clôture automatique après oubli de pointage (> 15 min après la fin) */
+  autoClosed: boolean("autoClosed").default(false).notNull(),
 });
 
-export const bonuses = pgTable("bonuses", {
-  id: serial("id").primaryKey(),
-  organizationId: integer("organizationId").notNull(),
-  employeeId: integer("employeeId").notNull(),
-  type: bonusTypeEnum("type").default("autre").notNull(),
-  amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
-  note: text("note"),
-  awardedByUserId: integer("awardedByUserId"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+/** Créneaux horaires hebdomadaires par employé (point 14.2) — 0 = dimanche. */
+export const employeeSchedules = pgTable(
+  "employeeSchedules",
+  {
+    id: serial("id").primaryKey(),
+    organizationId: integer("organizationId").notNull(),
+    employeeId: integer("employeeId").notNull(),
+    dayOfWeek: integer("dayOfWeek").notNull(), // 0 = dimanche … 6 = samedi
+    startTime: varchar("startTime", { length: 5 }).notNull(), // "08:00"
+    endTime: varchar("endTime", { length: 5 }).notNull(), // "19:00"
+    active: boolean("active").default(true).notNull(),
+  },
+  (table) => ({ scheduleDayUnique: uniqueIndex("employee_schedules_day_unique").on(table.employeeId, table.dayOfWeek) }),
+);
+
+export const bonuses = pgTable(
+  "bonuses",
+  {
+    id: serial("id").primaryKey(),
+    organizationId: integer("organizationId").notNull(),
+    employeeId: integer("employeeId").notNull(),
+    type: bonusTypeEnum("type").default("autre").notNull(),
+    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+    note: text("note"),
+    /** Clé de période (idempotence du plan de primes) : 2026-W37, 2026-09, 2026-T3, 2026 */
+    periodKey: varchar("periodKey", { length: 16 }),
+    awardedByUserId: integer("awardedByUserId"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    /** Une seule prime planifiée par employé, type et période. */
+    bonusPeriodUnique: uniqueIndex("bonuses_period_unique").on(table.organizationId, table.employeeId, table.type, table.periodKey),
+  }),
+);
 
 /* ------------------------------------------------------------------ */
 /* Assistance                                                          */

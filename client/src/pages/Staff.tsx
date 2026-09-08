@@ -6,8 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { EMPLOYEE_TYPE_LABELS, formatXof } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { AlertTriangle, Award, Clock, LogIn, LogOut, Plus, Trophy, UserPlus } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { AlarmClockOff, AlertTriangle, Award, CalendarClock, Clock, LogIn, LogOut, MapPin, Plus, Save, Trophy, UserPlus } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function Staff() {
@@ -24,16 +24,55 @@ export default function Staff() {
   const storesQuery = trpc.stores.list.useQuery(undefined, { enabled: showForm });
 
   const checkIn = trpc.employees.checkIn.useMutation({
-    onSuccess: () => {
+    onSuccess: (session) => {
       utils.employees.attendance.invalidate();
-      toast.success("Pointage enregistré — présence confirmée sur le lieu de travail.");
+      if (session.incident) toast.warning(`Pointage enregistré — ${session.incident}`);
+      else toast.success("Pointage enregistré — présence confirmée sur le lieu de travail.");
     },
     onError: (error) => toast.error(error.message),
   });
   const checkOut = trpc.employees.checkOut.useMutation({
-    onSuccess: () => {
+    onSuccess: (result) => {
       utils.employees.attendance.invalidate();
-      toast.success("Fin de service enregistrée.");
+      utils.employees.attendanceSummary.invalidate();
+      toast.success(result.outsideMinutes > 0 ? `Fin de service enregistrée — ${result.outsideMinutes} min hors horaires (majorées de 20 %).` : "Fin de service enregistrée.");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const autoClose = trpc.employees.autoCloseStale.useMutation({
+    onSuccess: (result) => {
+      utils.employees.attendance.invalidate();
+      if (result.closed.length) toast.info(`${result.closed.length} pointage(s) oublié(s) clôturé(s) automatiquement.`);
+      else toast.success("Aucun oubli de pointage détecté.");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  /** Récupère la position (dégradation douce si le GPS est refusé). */
+  const currentPosition = (): Promise<{ latitude: number; longitude: number } | null> =>
+    new Promise((resolve) => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 8000 },
+      );
+    });
+  const doCheckIn = async (employeeId: number) => {
+    const position = await currentPosition();
+    if (!position) toast.info("Position indisponible — pointage enregistré sans vérification GPS.");
+    checkIn.mutate({ employeeId, ...position });
+  };
+  const doCheckOut = async (sessionId: number) => {
+    const position = await currentPosition();
+    checkOut.mutate({ sessionId, ...position });
+  };
+
+  const planPreview = trpc.employees.bonusPlanPreview.useQuery();
+  const runPlan = trpc.employees.runBonusPlan.useMutation({
+    onSuccess: (result) => {
+      utils.employees.bonuses.invalidate();
+      utils.employees.bonusPlanPreview.invalidate();
+      toast.success(result.created.length ? `${result.created.length} prime(s) créée(s).` : "Aucune nouvelle prime — plan déjà à jour.");
     },
     onError: (error) => toast.error(error.message),
   });
@@ -53,7 +92,12 @@ export default function Staff() {
         {/* Effectifs */}
         <Card className="border-[#e8e8e2] shadow-[0_8px_30px_rgba(43,45,37,0.03)]">
           <CardHeader className="border-b border-[#f0f0eb] px-5 py-4">
-            <CardTitle className="font-display text-lg font-semibold tracking-[-0.03em]">Effectifs ({employees.length})</CardTitle>
+            <CardTitle className="flex items-center justify-between font-display text-lg font-semibold tracking-[-0.03em]">
+              Effectifs ({employees.length})
+              <Button variant="outline" size="sm" className="rounded-lg text-[10px]" onClick={() => autoClose.mutate({})} disabled={autoClose.isPending}>
+                <AlarmClockOff size={11} className="mr-1" /> Détecter les oublis
+              </Button>
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {employees.length === 0 ? (
@@ -78,10 +122,10 @@ export default function Staff() {
                       openSessions.has(row.employee.id) ? (
                         <Button variant="outline" size="sm" disabled={checkOut.isPending} onClick={() => {
                           const session = (attendanceQuery?.data ?? []).find((a) => a.session.employeeId === row.employee.id && !a.session.checkOutAt);
-                          if (session) checkOut.mutate({ sessionId: session.session.id });
+                          if (session) doCheckOut(session.session.id);
                         }} className="rounded-lg text-[10px]"><LogOut size={11} className="mr-1" /> Sortie</Button>
                       ) : (
-                        <Button variant="outline" size="sm" disabled={checkIn.isPending} onClick={() => checkIn.mutate({ employeeId: row.employee.id })} className="rounded-lg text-[10px]"><LogIn size={11} className="mr-1" /> Arrivée</Button>
+                        <Button variant="outline" size="sm" disabled={checkIn.isPending} onClick={() => doCheckIn(row.employee.id)} className="rounded-lg text-[10px]"><LogIn size={11} className="mr-1" /> Arrivée</Button>
                       )
                     )}
                     <Button variant="outline" size="sm" onClick={() => setBonusFor(row)} className="rounded-lg text-[10px]"><Award size={11} className="mr-1" /> Prime</Button>
@@ -155,6 +199,35 @@ export default function Staff() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Primes planifiées (14.3) */}
+          <Card className="border-[#e8e8e2] shadow-[0_8px_30px_rgba(43,45,37,0.03)]">
+            <CardHeader className="border-b border-[#f0f0eb] px-5 py-4">
+              <CardTitle className="flex items-center justify-between font-display text-lg font-semibold tracking-[-0.03em]">
+                <span className="flex items-center gap-2"><CalendarClock size={16} className="text-[#6954c6]" /> Primes planifiées</span>
+                <Button size="sm" className="rounded-lg bg-[#20231f] text-[10px] font-semibold text-white" onClick={() => runPlan.mutate({})} disabled={runPlan.isPending}>Exécuter</Button>
+              </CardTitle>
+              <p className="mt-1 text-[11px] text-[#969991]">Hebdo : 5 000 F au meilleur vendeur · Mensuel : 10 000 F · Fidélité : 2 % du CA/trimestre · Annuelle : 25 % du salaire (voiture/moto).</p>
+            </CardHeader>
+            <CardContent className="px-5 py-4">
+              {planPreview.data && planPreview.data.bonuses.length > 0 ? (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#a1a39d]">Primes dues ({planPreview.data.bonuses.length})</p>
+                  {planPreview.data.bonuses.slice(0, 6).map((bonus, index) => (
+                    <div key={index} className="flex items-center justify-between text-xs">
+                      <span>{bonus.employeeName} — {bonus.note}</span>
+                      <span className="font-semibold text-[#2d8a70]">{formatXof(bonus.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-[#969991]">Aucune prime due pour le moment — le plan se déclenche à la fin de chaque période (semaine, mois, trimestre, année).</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Horaires & majorations (14.2) */}
+          <ScheduleCard />
 
           {/* Primes */}
           <Card className="border-[#e8e8e2] shadow-[0_8px_30px_rgba(43,45,37,0.03)]">
@@ -288,5 +361,109 @@ function BonusForm({ target, onClose }: { target: any; onClose: () => void }) {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const DAY_NAMES = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+
+/** Carte « Horaires & majorations » : édition des créneaux + résumé du mois. */
+function ScheduleCard() {
+  const utils = trpc.useUtils();
+  const schedulesQuery = trpc.employees.schedules.useQuery();
+  const summaryQuery = trpc.employees.attendanceSummary.useQuery();
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [days, setDays] = useState<Array<{ dayOfWeek: number; startTime: string; endTime: string; active: boolean }>>([]);
+
+  const rows = schedulesQuery.data ?? [];
+  useEffect(() => {
+    if (selectedId === null && rows.length) {
+      setSelectedId(rows[0].employee.id);
+      setDays(rows[0].days);
+    }
+  }, [rows, selectedId]);
+
+  const save = trpc.employees.setSchedule.useMutation({
+    onSuccess: () => {
+      toast.success("Horaires enregistrés.");
+      utils.employees.schedules.invalidate();
+      utils.employees.attendanceSummary.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const current = rows.find((row) => row.employee.id === selectedId);
+
+  return (
+    <Card className="border-[#e8e8e2] shadow-[0_8px_30px_rgba(43,45,37,0.03)]">
+      <CardHeader className="border-b border-[#f0f0eb] px-5 py-4">
+        <CardTitle className="flex items-center gap-2 font-display text-lg font-semibold tracking-[-0.03em]"><MapPin size={16} className="text-[#2d8a70]" /> Horaires & majorations</CardTitle>
+        <p className="mt-1 text-[11px] text-[#969991]">Heures hors créneau payées +20 %. Pointage vérifié par géolocalisation (rayon du point de vente).</p>
+      </CardHeader>
+      <CardContent className="space-y-4 px-5 py-4">
+        <div>
+          <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#a1a39d]">Employé</label>
+          <select
+            className="w-full rounded-lg border border-[#e4e5df] bg-white px-2 py-1.5 text-xs font-semibold text-[#60635c]"
+            value={selectedId ?? ""}
+            onChange={(event) => {
+              const id = Number(event.target.value);
+              setSelectedId(id);
+              setDays(rows.find((row) => row.employee.id === id)?.days ?? []);
+            }}
+          >
+            {rows.map((row) => (
+              <option key={row.employee.id} value={row.employee.id}>{row.employee.firstName} {row.employee.lastName} ({row.employee.jobTitle})</option>
+            ))}
+          </select>
+        </div>
+        {current && (
+          <div className="space-y-1">
+            {days.map((day, index) => (
+              <div key={day.dayOfWeek} className="flex items-center gap-2 text-xs">
+                <label className="flex w-24 items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={day.active}
+                    onChange={(event) => setDays(days.map((entry, i) => (i === index ? { ...entry, active: event.target.checked } : entry)))}
+                  />
+                  {DAY_NAMES[day.dayOfWeek]}
+                </label>
+                <input
+                  type="time"
+                  value={day.startTime}
+                  disabled={!day.active}
+                  onChange={(event) => setDays(days.map((entry, i) => (i === index ? { ...entry, startTime: event.target.value } : entry)))}
+                  className="rounded-md border border-[#e4e5df] px-1.5 py-1 text-xs disabled:bg-[#f2f2ed]"
+                />
+                <span className="text-[#969991]">→</span>
+                <input
+                  type="time"
+                  value={day.endTime}
+                  disabled={!day.active}
+                  onChange={(event) => setDays(days.map((entry, i) => (i === index ? { ...entry, endTime: event.target.value } : entry)))}
+                  className="rounded-md border border-[#e4e5df] px-1.5 py-1 text-xs disabled:bg-[#f2f2ed]"
+                />
+              </div>
+            ))}
+            <Button size="sm" className="mt-2 rounded-lg bg-[#20231f] text-[10px] font-semibold text-white" onClick={() => save.mutate({ employeeId: current.employee.id, days })} disabled={save.isPending}>
+              <Save size={11} className="mr-1" /> Enregistrer les horaires
+            </Button>
+          </div>
+        )}
+        <div>
+          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#a1a39d]">Majorations du mois (estimation)</p>
+          {(summaryQuery.data ?? []).filter((row) => row.outsideMinutes > 0).length === 0 ? (
+            <p className="text-xs text-[#969991]">Aucune heure hors horaires ce mois-ci.</p>
+          ) : (
+            (summaryQuery.data ?? []).filter((row) => row.outsideMinutes > 0).map((row) => (
+              <div key={row.employee.id} className="flex items-center justify-between py-1 text-xs">
+                <span>{row.employee.firstName} {row.employee.lastName} — {Math.floor(row.outsideMinutes / 60)} h {row.outsideMinutes % 60} min hors horaires</span>
+                <span className="font-semibold text-[#c27b2c]">+{formatXof(row.overtimeAllowance)}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -25,6 +25,8 @@
 - [x] Taux de change : mise à jour réservée à l'administration ENVOL (rates.update admin-only)
 - [x] Comptabilité SYSCOHADA révisé (10) : écritures automatiques et idempotentes (ventes multi-comptes + reste client 411, achats 6011/6021 + 401, règlements, ventes en ligne 533, paie 641, abonnement 628, virements 585), balance générale équilibrée, compte de résultat, bilan simplifié, plan comptable affiché
 - [x] Rapprochement bancaire (11) : lignes de relevé, rapprochement automatique (montant/sens/±7 jours), association manuelle, écarts signalés (point 11)
+- [x] Pointage géolocalisé + horaires (14.2) : géorepérage haversine par point de vente (rayon configurable), horaires hebdomadaires par employé, majoration +20 % des heures hors créneau, retard signalé, oubli de pointage clôturé automatiquement (> 15 min), résumé mensuel des majorations
+- [x] Primes planifiées (14.3) : meilleur vendeur hebdo (5 000 F) et mensuel (10 000 F), fidélité trimestrielle (2 % du CA dès 50 000 F), prime annuelle voiture/moto (25 % du salaire), exécution idempotente par clé de période
 - [x] Reçus clients PDF + e-mail (13) : générateur PDF sans dépendance (articles, livraison, parrainage, net à payer, reste à payer), téléchargement depuis la Caisse (ventes) et Opérations (commandes en ligne payées), envoi Resend/SMTP ou simulation journalisée
 
 ## À faire (prochaines étapes)

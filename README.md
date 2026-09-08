@@ -150,3 +150,10 @@ L'onglet **Comptabilité** génère les écritures automatiques aux normes **SYS
 - **Ventilation** : vente boutique → bouton « Reçu PDF » et « Envoyer par e-mail » dans la fenêtre de fin de vente de la **Caisse** ; commande en ligne payée → boutons « Reçu » et « E-mail » dans **Opérations → Commandes clients** (destinataire par défaut : l'e-mail du paiement en ligne).
 - **Envoi d'e-mail** : `RESEND_API_KEY` (API HTTP, pièce jointe base64) ou `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` (nodemailer s'il est installé). **Sans fournisseur configuré**, l'envoi est **simulé et journalisé** — l'application reste 100 % utilisable en démonstration.
 - Chaque téléchargement et chaque envoi est tracé dans le journal des reçus (`receipts.logs`).
+
+## Pointage géolocalisé, horaires & primes planifiées (point 14)
+
+- **Horaires hebdomadaires** par employé (7 jours éditables dans Personnel → « Horaires & majorations ») ; les heures travaillées hors créneau sont **majorées de 20 %** et l'estimation de la majoration du mois s'affiche par employé.
+- **Pointage géolocalisé** : les boutons Arrivée/Sortie captent la position du téléphone (navigator.geolocation) et la confrontent au point de vente (rayon de tolérance configurable, 150 m par défaut — coordonnées réelles Lomé/Douala en démo). Hors zone → incident sur la session ; retard au pointage d'ouverture → signalé.
+- **Oublis de pointage** : une session encore ouverte plus de 15 minutes après la fin du créneau est **clôturée automatiquement** avec incident (bouton « Détecter les oublis », détection à 15 h d'ouverture continue hors horaire défini).
+- **Primes planifiées** (exécution idempotente par clé de période) : meilleur vendeur **hebdomadaire** (5 000 F), **mensuel** (10 000 F), **fidélité trimestrielle** (2 % du CA individuel dès 50 000 F), **prime annuelle voiture/moto** (25 % du salaire de base, chaque employé actif). Aperçu avant exécution, aucune double attribution possible.
