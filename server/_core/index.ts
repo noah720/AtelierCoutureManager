@@ -74,6 +74,17 @@ async function startServer() {
     })
   );
 
+  // Les documents HTML ne doivent jamais venir d'un cache : le panneau
+  // d'aperçu doit toujours exécuter la dernière version du code client
+  // (sinon l'ancienne page de connexion reste dans le navigateur).
+  app.use((req, res, next) => {
+    if (req.method === "GET" && !req.path.startsWith("/api") && !/\.[a-zA-Z0-9]+$/.test(req.path)) {
+      res.setHeader("Cache-Control", "no-store, must-revalidate");
+      res.setHeader("X-App-Version", "2.1");
+    }
+    next();
+  });
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
