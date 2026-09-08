@@ -30,7 +30,7 @@ export const productionRouter = router({
     const { organizationId } = await requireOrganization(ctx.user.id);
     const db = await requireDb();
     return db
-      .select({ order: productionOrders, tasksCount: sql<number>`(SELECT COUNT(*) FROM "productionTasks" WHERE "productionOrderId" = ${productionOrders.id})`, tasksDone: sql<number>`(SELECT COUNT(*) FROM "productionTasks" WHERE "productionOrderId" = ${productionOrders.id} AND status = 'terminee')` })
+      .select({ order: productionOrders, tasksCount: sql<number>`(SELECT COUNT(*) FROM "productionTasks" WHERE "productionOrderId" = "productionOrders"."id")`, tasksDone: sql<number>`(SELECT COUNT(*) FROM "productionTasks" WHERE "productionOrderId" = "productionOrders"."id" AND status = 'terminee')` })
       .from(productionOrders)
       .where(eq(productionOrders.organizationId, organizationId))
       .orderBy(desc(productionOrders.createdAt))

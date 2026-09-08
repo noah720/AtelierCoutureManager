@@ -19,8 +19,8 @@ export const adminRouter = router({
     const rows = await db
       .select({
         organization: organizations,
-        members: sql<number>`(SELECT COUNT(*) FROM "organizationMembers" WHERE "organizationId" = ${organizations.id})`,
-        ownerName: sql<string>`COALESCE((SELECT name FROM "users" u INNER JOIN "organizationMembers" m ON m."userId" = u.id WHERE m."organizationId" = ${organizations.id} AND m.role = 'owner' LIMIT 1), '—')`,
+        members: sql<number>`(SELECT COUNT(*) FROM "organizationMembers" WHERE "organizationId" = "organizations"."id")`,
+        ownerName: sql<string>`COALESCE((SELECT name FROM "users" u INNER JOIN "organizationMembers" m ON m."userId" = u.id WHERE m."organizationId" = "organizations"."id" AND m.role = 'owner' LIMIT 1), '—')`,
       })
       .from(organizations)
       .orderBy(desc(organizations.createdAt));
