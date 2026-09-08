@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { getDb, getOperationalSummary, getOrganizationForUser, getOrganizationIdForUser, listCustomers, listInventory, listOrders, listProducts, listStores, listVariants } from "./db";
-import { customers, inventory, orders, organizationMembers, organizations, products, stores } from "../drizzle/schema";
+import { customers, inventory, orderItems, orders, organizationMembers, organizations, productVariants, products, stores } from "../drizzle/schema";
 
 export function assertAllowedRole(role: "owner" | "manager" | "staff", allowedRoles: Array<"owner" | "manager" | "staff">) {
   if (!allowedRoles.includes(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Votre rôle ne permet pas cette action." });
@@ -111,15 +111,29 @@ export const appRouter = router({
 
   orders: router({
     list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listOrders)),
-    create: protectedProcedure.input(z.object({ storeId: z.number().int().positive(), customerId: z.number().int().positive(), reference: z.string().min(3).max(32), totalAmount: z.string().regex(/^\\d+(\\.\\d{1,2})?$/), notes: z.string().max(2000).optional() })).mutation(async ({ ctx, input }) => {
+    create: protectedProcedure.input(z.object({ storeId: z.number().int().positive(), customerId: z.number().int().positive(), reference: z.string().min(3).max(32), totalAmount: z.string().regex(/^\\d+(\\.\\d{1,2})?$/), notes: z.string().max(2000).optional(), items: z.array(z.object({ variantId: z.number().int().positive(), quantity: z.number().int().positive(), unitPrice: z.string().regex(/^\\d+(\\.\\d{1,2})?$/) })).max(50).optional() })).mutation(async ({ ctx, input }) => {
       const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager", "staff"]);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
       const [store] = await db.select({ id: stores.id }).from(stores).where(and(eq(stores.id, input.storeId), eq(stores.organizationId, organizationId))).limit(1);
       const [customer] = await db.select({ id: customers.id }).from(customers).where(and(eq(customers.id, input.customerId), eq(customers.organizationId, organizationId))).limit(1);
       if (!store || !customer) throw new TRPCError({ code: "BAD_REQUEST", message: "La boutique ou le client n’appartient pas à votre marque." });
+      const items = input.items ?? [];
+      for (const item of items) {
+        const [variant] = await db.select({ id: productVariants.id }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(and(eq(productVariants.id, item.variantId), eq(products.organizationId, organizationId))).limit(1);
+        if (!variant) throw new TRPCError({ code: "BAD_REQUEST", message: "Une variante n’appartient pas à votre marque." });
+      }
       const [order] = await db.insert(orders).values({ organizationId, storeId: input.storeId, customerId: input.customerId, reference: input.reference, totalAmount: input.totalAmount, notes: input.notes ?? null }).$returningId();
+      if (!order?.id) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Création de la commande impossible." });
+      if (items.length) await db.insert(orderItems).values(items.map((item) => ({ orderId: order.id, variantId: item.variantId, quantity: item.quantity, unitPrice: item.unitPrice })));
       return order;
+    }),
+    updateStatus: protectedProcedure.input(z.object({ id: z.number().int().positive(), status: z.enum(["pending", "confirmed", "in_production", "ready", "delivered", "cancelled"]) })).mutation(async ({ ctx, input }) => {
+      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager", "staff"]);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
+      const result = await db.update(orders).set({ status: input.status }).where(and(eq(orders.id, input.id), eq(orders.organizationId, organizationId)));
+      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
     }),
   }),
 
