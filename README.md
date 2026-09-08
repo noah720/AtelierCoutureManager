@@ -26,7 +26,8 @@ L'application tourne de bout en bout : authentification locale, espace de marque
 | **Abonnements** — 3 formules (50 k / 150 k / 250 k F CFA), réductions annuelles 20/25/30 %, semaine de tolérance, validation ENVOL | ✅ Opérationnel |
 | **Administration ENVOL** — validation des marques, paiements d'abonnement, suspension/réactivation | ✅ Opérationnel |
 | Assistance — bouton permanent sur toutes les pages, contexte pré-rempli, historique | ✅ Opérationnel |
-| Boutique en ligne publique, Moneroo, DHL, Assistant IA | 🚧 Prochaines étapes |
+| **Boutique en ligne publique** — vitrine sans compte (`/boutique/<marque>`), panier, tailles S→3XL ou sur mesure, stocks agrégés multi-boutiques, zones de livraison (dont DHL international), code parrainage, paiement Moneroo (simulation si clé absente) | ✅ Opérationnel |
+| Intégration Moneroo réelle (mobile money, carte, PayPal), reçu PDF + e-mail, Assistant IA | 🚧 Prochaines étapes |
 
 ## Démarrage rapide
 
@@ -91,13 +92,24 @@ Les migrations sont versionnées dans `drizzle/` (`pnpm db:generate` après tout
 
 ## Feuille de route (prochaines étapes)
 
-1. Boutique en ligne publique (vitrine, panier, choix taille/gamme/couleur ou sur mesure) branchée sur les stocks agrégés.
-2. Intégration Moneroo réelle (mobile money, carte, PayPal) + reversement des ventes.
-3. Frais de livraison par zone + calcul DHL au panier.
-4. Expédition du reçu client par e-mail (PDF).
-5. Comptabilité SYSCOHADA (plan comptable, écritures automatiques, états).
-6. Assistant Commercial & Marketing IA (WhatsApp / réseaux sociaux, modes brouillon / semi-autonome / autonome).
-7. Pointage par géolocalisation et horaires détaillés (majoration 20 % hors horaires).
+1. Intégration Moneroo réelle (mobile money, carte, PayPal) + reversement des ventes — la caisse de simulation est déjà en place (`MONEROO_API_KEY` + `MONEROO_WEBHOOK_SECRET`).
+2. Expédition du reçu client par e-mail (PDF).
+3. Comptabilité SYSCOHADA (plan comptable, écritures automatiques, états) + rapprochement bancaire.
+4. Assistant Commercial & Marketing IA (WhatsApp / réseaux sociaux, modes brouillon / semi-autonome / autonome).
+5. Pointage par géolocalisation et horaires détaillés (majoration 20 % hors horaires).
+6. Primes automatiques planifiées (hebdo / mensuel / annuel / fidélité 2 %), remboursements partiels.
+
+## Boutique en ligne (formule complète)
+
+La marque publiée expose une vitrine **publique, sans compte** sur `/boutique/<slug>` :
+
+- **Catalogue** : produits actifs de la marque, recherche + catégories, badge « Disponible » ou « À fabriquer » (stock agrégé de toutes les boutiques actives).
+- **Panier** : localStorage (`am_cart_<slug>`), tailles S→3XL, **sur mesure** avec mensurations (poitrine, taille, hanches, longueur) et couleur libre.
+- **Livraison** : zones tarifées de la marque (Lomé, Reste du Togo, Douala, Dakar, **International DHL** en démo). La ligne part de la boutique qui livre : même ville d'abord, sinon plus grand stock, sinon **demande de fabrication à l'atelier** (5.3).
+- **Code parrainage** : réduction client appliquée aux articles uniquement (le taux est celui configuré par la marque, 10 % par défaut).
+- **Paiement** : sans `MONEROO_API_KEY`, caisse de **simulation** (MTN, Moov, Orange, Wave, carte) qui encaisse immédiatement ; avec la clé, redirige vers Moneroo et le webhook signé `POST /api/webhooks/moneroo` (HMAC-SHA512 du corps brut, en-tête `x-moneroo-signature`) confirme le paiement.
+- **Encaissement** : commande `WEB-xxxx` (statut `confirmée`, paiement `payé`) + mouvement de trésorerie automatique dans le compte **« Boutique en ligne (Moneroo) »** ; rupture → fiche de production « commande » avec les mensurations du client.
+- **Réglages** : le propriétaire gère ses zones de livraison et voit le lien de sa vitrine dans Paramètres → « Boutique en ligne & livraison ».
 8. Prime annuelle (voiture / moto) et fidélité trimestrielle.
 
 ## Contribution

@@ -17,6 +17,10 @@ import Staff from "./pages/Staff";
 import Support from "./pages/Support";
 import Billing from "./pages/Billing";
 import Treasury from "./pages/Treasury";
+import Shop from "./pages/Shop";
+import ShopProduct from "./pages/ShopProduct";
+import ShopCheckout from "./pages/ShopCheckout";
+import ShopPayment from "./pages/ShopPayment";
 
 function Router() {
   return (
@@ -41,17 +45,33 @@ function Router() {
   );
 }
 
+/** Vitrine publique : visible par tout le monde, sans connexion (5.1). */
+function ShopRouter() {
+  return (
+    <Switch>
+      <Route path="/boutique/:slug" component={Shop} />
+      <Route path="/boutique/:slug/produit/:id" component={ShopProduct} />
+      <Route path="/boutique/:slug/panier" component={ShopCheckout} />
+      <Route path="/boutique/:slug/paiement/:paymentId" component={ShopPayment} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
 export default function App() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { loading, isAuthenticated } = useAuth();
   const [location] = useLocation();
   const isLoginPage = location === "/login";
+  const isPublicShop = location.startsWith("/boutique");
 
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
-          {loading && !isLoginPage ? (
+          {isPublicShop ? (
+            <ShopRouter />
+          ) : loading && !isLoginPage ? (
             <div className="flex min-h-screen items-center justify-center bg-[#f7f7f5]">
               <div className="text-center">
                 <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-[#20231f] border-t-transparent" />
@@ -63,7 +83,6 @@ export default function App() {
           ) : (
             <Router />
           )}
-          {!isLoginPage && user ? null : null}
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

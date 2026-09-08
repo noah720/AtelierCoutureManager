@@ -11,6 +11,7 @@ import { purchasesRouter } from "./routers/purchases";
 import { treasuryRouter } from "./routers/treasury";
 import { employeesRouter } from "./routers/people";
 import { adminRouter } from "./routers/admin";
+import { shopRouter, deliveryRouter } from "./routers/shop";
 import { systemRouter } from "./_core/systemRouter";
 
 export { assertAllowedRole } from "./guards";
@@ -34,6 +35,8 @@ export const appRouter = router({
   rates: ratesRouter,
   dashboard: dashboardRouter,
   admin: adminRouter,
+  shop: shopRouter,
+  delivery: deliveryRouter,
 });
 
 export type AppRouter = typeof appRouter;

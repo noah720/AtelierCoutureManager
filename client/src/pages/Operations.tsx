@@ -505,9 +505,18 @@ function OrdersList({ onOpenCreate, storesById }: { onOpenCreate: () => void; st
               <div key={order.id} className="flex flex-wrap items-center gap-4 px-5 py-4 sm:px-6">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eee8ff] text-[#6954c6]"><Package size={16} /></div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold">{order.reference}</p>
+                  <p className="text-sm font-semibold">
+                    {order.reference}
+                    {order.channel === "en_ligne" && <Badge className="ml-2 border-0 bg-[#eee8ff] text-[9px] font-bold text-[#6954c6]">En ligne</Badge>}
+                    {order.channel === "en_ligne" && (
+                      <Badge className={`ml-1 border-0 text-[9px] font-bold ${order.paymentStatus === "paye" ? "bg-[#e2f4ee] text-[#2d8a70]" : "bg-[#fff0ed] text-[#b4604e]"}`}>
+                        {order.paymentStatus === "paye" ? "Payé" : "Impayé"}
+                      </Badge>
+                    )}
+                  </p>
                   <p className="mt-1 text-xs text-[#979a92]">
                     Client #{order.customerId} · {storesById.get(order.storeId)?.name ?? `Boutique #${order.storeId}`} · {new Date(order.createdAt).toLocaleDateString("fr-FR")}
+                    {order.channel === "en_ligne" && order.deliveryPhone ? ` · Livraison : ${order.deliveryName ?? ""} (${order.deliveryPhone})` : ""}
                   </p>
                 </div>
                 <p className="text-sm font-semibold">{formatXof(order.totalAmount)}</p>

@@ -35,8 +35,11 @@ export const orderStatusEnum = pgEnum("orderStatus", [
   "in_production",
   "ready",
   "delivered",
-  "cancelled",
-]);
+  "cancelled"]);
+export const orderChannelEnum = pgEnum("orderChannel", ["boutique", "en_ligne"]);
+export const orderPaymentStatusEnum = pgEnum("orderPaymentStatus", ["impaye", "paye", "rembourse"]);
+export const zoneKindEnum = pgEnum("zoneKind", ["locale", "internationale"]);
+export const onlinePaymentStatusEnum = pgEnum("onlinePaymentStatus", ["en_attente", "succes", "echec"]);
 
 export const productionTypeEnum = pgEnum("productionType", ["commande", "confection", "retouche"]);
 export const productionStageEnum = pgEnum("productionStage", [
@@ -258,6 +261,16 @@ export const orders = pgTable(
     status: orderStatusEnum("status").default("pending").notNull(),
     totalAmount: numeric("totalAmount", { precision: 14, scale: 2 }).notNull(),
     notes: text("notes"),
+    /** Canal de vente : boutique physique ou commande en ligne (5.3) */
+    channel: orderChannelEnum("channel").default("boutique").notNull(),
+    paymentStatus: orderPaymentStatusEnum("paymentStatus").default("impaye").notNull(),
+    referralCode: varchar("referralCode", { length: 32 }),
+    /** Livraison (5.4) */
+    deliveryZoneId: integer("deliveryZoneId"),
+    deliveryFee: numeric("deliveryFee", { precision: 14, scale: 2 }).default("0").notNull(),
+    deliveryName: varchar("deliveryName", { length: 160 }),
+    deliveryPhone: varchar("deliveryPhone", { length: 40 }),
+    deliveryAddress: text("deliveryAddress"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
@@ -270,6 +283,44 @@ export const orderItems = pgTable("orderItems", {
   variantId: integer("variantId").notNull(),
   quantity: integer("quantity").notNull(),
   unitPrice: numeric("unitPrice", { precision: 14, scale: 2 }).notNull(),
+});
+
+/* ------------------------------------------------------------------ */
+/* Boutique en ligne : zones de livraison & paiements                  */
+/* ------------------------------------------------------------------ */
+
+export const deliveryZones = pgTable(
+  "deliveryZones",
+  {
+    id: serial("id").primaryKey(),
+    organizationId: integer("organizationId").notNull(),
+    name: varchar("name", { length: 120 }).notNull(),
+    /** Locale : tarif fixe de la marque. Internationale : DHL (5.4). */
+    kind: zoneKindEnum("kind").default("locale").notNull(),
+    fee: numeric("fee", { precision: 14, scale: 2 }).default("0").notNull(),
+    currency: currencyEnum("currency").default("XOF").notNull(),
+    etaDays: integer("etaDays"),
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({ zoneUnique: uniqueIndex("delivery_zones_name_unique").on(table.organizationId, table.name) }),
+);
+
+export const onlinePayments = pgTable("onlinePayments", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organizationId").notNull(),
+  orderId: integer("orderId").notNull(),
+  provider: varchar("provider", { length: 40 }).default("moneroo").notNull(),
+  /** simulation : page de paiement intégrée ; live : caisse Moneroo réelle */
+  mode: varchar("mode", { length: 20 }).default("simulation").notNull(),
+  amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+  currency: currencyEnum("currency").default("XOF").notNull(),
+  status: onlinePaymentStatusEnum("status").default("en_attente").notNull(),
+  providerRef: varchar("providerRef", { length: 160 }),
+  checkoutUrl: text("checkoutUrl"),
+  customerEmail: varchar("customerEmail", { length: 320 }),
+  paidAt: timestamp("paidAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 /* ------------------------------------------------------------------ */

@@ -42,6 +42,11 @@ async function createDatabase(): Promise<AppDatabase> {
     const pool = new Pool({ connectionString: url, max: 5, ssl: url.includes("sslmode=require") ? { rejectUnauthorized: false } : undefined });
     return drizzleNodePg(pool) as unknown as AppDatabase;
   }
+  // `pglite://:memory:` : Postgres embarqué en mémoire (tests automatisés).
+  if (url === "pglite://:memory:") {
+    _pglite = new PGlite();
+    return drizzlePgLite(_pglite) as unknown as AppDatabase;
+  }
   _pglite = new PGlite(resolvePglitePath());
   return drizzlePgLite(_pglite) as unknown as AppDatabase;
 }

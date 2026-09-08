@@ -15,6 +15,7 @@ import { hashPassword } from "./_core/auth";
 import { getDb } from "./db";
 import {
   customers,
+  deliveryZones,
   employees,
   exchangeRates,
   inventory,
@@ -155,6 +156,18 @@ export async function seed(): Promise<void> {
       openingBalance: s.kind === "atelier" ? "20000" : "50000",
     })),
   ]);
+
+  // Zones de livraison (5.4) : tarifs fixes par zone, DHL pour l'international.
+  await db
+    .insert(deliveryZones)
+    .values([
+      { organizationId: orgId, name: "Lomé", kind: "locale", fee: "1000", currency: "XOF", etaDays: 1 },
+      { organizationId: orgId, name: "Reste du Togo", kind: "locale", fee: "3000", currency: "XOF", etaDays: 3 },
+      { organizationId: orgId, name: "Douala", kind: "locale", fee: "2000", currency: "XOF", etaDays: 2 },
+      { organizationId: orgId, name: "Dakar", kind: "locale", fee: "5000", currency: "XOF", etaDays: 4 },
+      { organizationId: orgId, name: "International (DHL)", kind: "internationale", fee: "25000", currency: "XOF", etaDays: 7 },
+    ])
+    .onConflictDoNothing();
 
   // Barème de paye à la tâche (8)
   await db.insert(taskRates).values(

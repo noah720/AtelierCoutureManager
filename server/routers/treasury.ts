@@ -20,8 +20,8 @@ export const treasuryRouter = router({
     return db
       .select({
         account: treasuryAccounts,
-        balance: sql<string>`${treasuryAccounts.openingBalance} + COALESCE((SELECT SUM(CASE WHEN m.direction = 'entree' THEN m.amount ELSE -m.amount END) FROM "treasuryMovements" m WHERE m.accountId = ${treasuryAccounts.id}), 0)`,
-        movementsCount: sql<number>`(SELECT COUNT(*) FROM "treasuryMovements" m WHERE m.accountId = ${treasuryAccounts.id})`,
+        balance: sql<string>`${treasuryAccounts.openingBalance} + COALESCE((SELECT SUM(CASE WHEN m.direction = 'entree' THEN m.amount ELSE -m.amount END) FROM "treasuryMovements" m WHERE m."accountId" = ${treasuryAccounts.id}), 0)`,
+        movementsCount: sql<number>`(SELECT COUNT(*) FROM "treasuryMovements" m WHERE m."accountId" = ${treasuryAccounts.id})`,
       })
       .from(treasuryAccounts)
       .where(eq(treasuryAccounts.organizationId, organizationId))
