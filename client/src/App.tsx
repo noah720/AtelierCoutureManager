@@ -4,6 +4,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import NotFound from "@/pages/NotFound";
 import Operations from "@/pages/Operations";
 import { Route, Switch, useLocation } from "wouter";
+import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Admin from "./pages/Admin";
@@ -26,6 +27,14 @@ import ShopCheckout from "./pages/ShopCheckout";
 import ShopPayment from "./pages/ShopPayment";
 
 function Router() {
+  // L'administration ENVOL n'appartient à aucune marque : son tableau de
+  // bord est l'espace d'administration, pas celui d'une marque.
+  const { user } = useAuth();
+  const [location, navigate] = useLocation();
+  useEffect(() => {
+    if (user?.role === "admin" && location === "/") navigate("/admin", { replace: true });
+  }, [user, location, navigate]);
+
   return (
     <Switch>
       <Route path="/" component={Home} />

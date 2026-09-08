@@ -35,7 +35,9 @@ export default function Login() {
       saveToken(data);
       await utils.auth.me.invalidate();
       toast.success("Connexion réussie. Bienvenue !");
-      navigate("/", { replace: true });
+      // L'administration ENVOL atterrit sur son espace, les autres rôles
+      // sur le tableau de bord de leur marque.
+      navigate(data.role === "admin" ? "/admin" : "/", { replace: true });
     },
     onError: (error) => toast.error(error.message),
   });
@@ -158,6 +160,7 @@ export default function Login() {
               ))}
             </div>
           </div>
+          <p className="mt-4 text-center font-mono text-[10px] text-[#b0b3aa]">AtelierManager · v2.1 · session sécurisée</p>
         </div>
       </div>
     </div>
