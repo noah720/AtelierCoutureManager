@@ -23,6 +23,8 @@
 - [x] Vérifier le build, les tests et le rendu desktop/mobile
 - [x] Assistant Commercial & Marketing IA (6) : publications WhatsApp/Facebook/Instagram générées depuis les vraies données (produits, prix, zones, parrainage), circuit brouillon → approuvé → publié, boîte de réception multi-canal avec suggestions de réponse, 3 modes (brouillon / semi-autonome / autonome), journal d'activité, rehaussement LLM optionnel (OPENAI_API_KEY)
 - [x] Taux de change : mise à jour réservée à l'administration ENVOL (rates.update admin-only)
+- [x] Comptabilité SYSCOHADA révisé (10) : écritures automatiques et idempotentes (ventes multi-comptes + reste client 411, achats 6011/6021 + 401, règlements, ventes en ligne 533, paie 641, abonnement 628, virements 585), balance générale équilibrée, compte de résultat, bilan simplifié, plan comptable affiché
+- [x] Rapprochement bancaire (11) : lignes de relevé, rapprochement automatique (montant/sens/±7 jours), association manuelle, écarts signalés (point 11)
 
 ## À faire (prochaines étapes)
 
@@ -30,7 +32,6 @@
 - [ ] Intégration Moneroo réelle (mobile money, carte, PayPal) et reversement des ventes aux marques
 - [ ] Frais de livraison par zone/ville + calcul DHL au panier
 - [ ] Reçu client en PDF envoyé par e-mail à la clôture de la vente
-- [ ] Comptabilité SYSCOHADA révisé : plan comptable, écritures automatiques, états financiers (priorité suivante)
 - [ ] Vérification que les comptes en banque correspondent à la trésorerie saisie (rapprochement)
 - [ ] Assistant Commercial & Marketing IA (WhatsApp/Facebook/Instagram, modes brouillon / semi-autonome / autonome)
 - [ ] Pointage par géolocalisation + horaires détaillés et majoration 20 % hors horaires

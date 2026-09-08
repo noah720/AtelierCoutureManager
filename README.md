@@ -28,7 +28,9 @@ L'application tourne de bout en bout : authentification locale, espace de marque
 | Assistance — bouton permanent sur toutes les pages, contexte pré-rempli, historique | ✅ Opérationnel |
 | **Boutique en ligne publique** — vitrine sans compte (`/boutique/<marque>`), panier, tailles S→3XL ou sur mesure, stocks agrégés multi-boutiques, zones de livraison (dont DHL international), code parrainage, paiement Moneroo (simulation si clé absente) | ✅ Opérationnel |
 | **Assistant Commercial & Marketing IA** — publications WhatsApp/Facebook/Instagram générées depuis les vraies données, boîte de réception multi-canal avec suggestions de réponse, 3 modes (brouillon / semi-autonome / autonome) avec journal d'activité | ✅ Opérationnel |
-| Intégration Moneroo réelle (mobile money, carte, PayPal), reçu PDF + e-mail | 🚧 Prochaines étapes |
+| **Comptabilité SYSCOHADA** — écritures automatiques (ventes, achats, règlements, ventes en ligne, paie, virements), balance équilibrée, compte de résultat, bilan simplifié, plan comptable | ✅ Opérationnel |
+| **Rapprochement bancaire** — lignes de relevé, rapprochement automatique (montant/sens/date), écarts signalés | ✅ Opérationnel |
+| Reçu client PDF + e-mail, intégration Moneroo réelle | 🚧 Prochaines étapes |
 
 ## Démarrage rapide
 
@@ -93,11 +95,10 @@ Les migrations sont versionnées dans `drizzle/` (`pnpm db:generate` après tout
 
 ## Feuille de route (prochaines étapes)
 
-1. Comptabilité SYSCOHADA révisée (plan comptable, écritures automatiques, états financiers) + rapprochement bancaire.
-2. Intégration Moneroo réelle (mobile money, carte, PayPal) + reversement des ventes — la caisse de simulation est déjà en place (`MONEROO_API_KEY` + `MONEROO_WEBHOOK_SECRET`).
-3. Expédition du reçu client par e-mail (PDF).
-4. Pointage par géolocalisation et horaires détaillés (majoration 20 % hors horaires).
-5. Primes automatiques planifiées (hebdo / mensuel / annuel / fidélité 2 %), remboursements partiels.
+1. Intégration Moneroo réelle (mobile money, carte, PayPal) + reversement des ventes — la caisse de simulation est déjà en place (`MONEROO_API_KEY` + `MONEROO_WEBHOOK_SECRET`).
+2. Expédition du reçu client par e-mail (PDF).
+3. Pointage par géolocalisation et horaires détaillés (majoration 20 % hors horaires).
+4. Primes automatiques planifiées (hebdo / mensuel / annuel / fidélité 2 %), remboursements partiels.
 
 ## Boutique en ligne (formule complète)
 
@@ -130,3 +131,15 @@ L'onglet **Assistant IA** du back-office pilote un assistant commercial & market
 - **LLM optionnel** : avec `OPENAI_API_KEY` (et `OPENAI_MODEL` optionnel), les textes sont rehaussés par un LLM ; sans clé ou en cas d'échec réseau, les gabarits internes sont utilisés tels quels — l'assistant fonctionne toujours.
 
 > Les taux de change sont globaux : seule l'administration ENVOL peut les modifier (Point 12).
+
+## Comptabilité SYSCOHADA & rapprochement (points 10-11)
+
+L'onglet **Comptabilité** génère les écritures automatiques aux normes **SYSCOHADA révisé** (plan simplifié affiché dans l'application) :
+
+- **Ventes** : encaissements débités par compte de trésorerie (caisse boutique 572, mobile money 531, TPE 532, banque 521…), reste client au débit 411 si la vente est partiellement payée, produits crédités en 701 (couture) ou 707 (accessoires) — les réductions de parrainage sont réparties proportionnellement.
+- **Achats** : D 6021 (matières premières) ou 6011 (marchandises revendues) / C 401 Fournisseurs dès l'approbation, puis D 401 / C trésorerie au paiement.
+- **Ventes en ligne** : D 533 Caisse en ligne / C produits, depuis les mouvements Moneroo.
+- **Divers** : paie → 641, abonnement → 628, virements internes → 585, ajustements → 6581/7581.
+- La synchronisation est **idempotente** (une opération = une écriture, index unique) et les écritures sont toujours **équilibrées**.
+- **États** : balance générale (totaux débit = crédit), compte de résultat, bilan simplifié.
+- **Rapprochement bancaire (11)** : importez les lignes de votre relevé, l'assistant rapproche automatiquement (même montant, même sens, ±7 jours), et signale les écarts (lignes ou mouvements non rapprochés) — vérification que la banque correspond à la trésorerie saisie.

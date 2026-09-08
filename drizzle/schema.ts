@@ -598,6 +598,57 @@ export const aiMessages = pgTable("aiMessages", {
 });
 
 /* ------------------------------------------------------------------ */
+/* Comptabilité SYSCOHADA (points 10-11)                               */
+/* ------------------------------------------------------------------ */
+
+/** Écriture comptale (une opération = une écriture équilibrée débit/crédit). */
+export const accountingEntries = pgTable(
+  "accountingEntries",
+  {
+    id: serial("id").primaryKey(),
+    organizationId: integer("organizationId").notNull(),
+    /** Journal : VT ventes · AC achats · BQ banque · CA caisses · OD divers */
+    journalCode: varchar("journalCode", { length: 2 }).notNull(),
+    entryDate: timestamp("entryDate").defaultNow().notNull(),
+    reference: varchar("reference", { length: 64 }).notNull(),
+    /** sale | purchase | purchase_payment | online_payment | movement */
+    refType: varchar("refType", { length: 40 }).notNull(),
+    refId: integer("refId"),
+    label: varchar("label", { length: 240 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    /** Idempotence : une même opération ne produit qu'une seule écriture. */
+    entryRefUnique: uniqueIndex("accounting_entries_ref_unique").on(table.organizationId, table.refType, table.refId),
+  }),
+);
+
+/** Lignes d'écriture : un numéro de compte SYSCOHADA, un débit ou un crédit. */
+export const accountingLines = pgTable("accountingLines", {
+  id: serial("id").primaryKey(),
+  entryId: integer("entryId").notNull(),
+  organizationId: integer("organizationId").notNull(),
+  accountNumber: varchar("accountNumber", { length: 8 }).notNull(),
+  accountLabel: varchar("accountLabel", { length: 160 }).notNull(),
+  debit: numeric("debit", { precision: 16, scale: 2 }).default("0").notNull(),
+  credit: numeric("credit", { precision: 16, scale: 2 }).default("0").notNull(),
+});
+
+/** Ligne de relevé bancaire importée, à rapprocher d'un mouvement de trésorerie. */
+export const bankStatementLines = pgTable("bankStatementLines", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organizationId").notNull(),
+  accountId: integer("accountId").notNull(), // compte de trésorerie « banque »
+  statementDate: timestamp("statementDate").notNull(),
+  label: varchar("label", { length: 240 }).notNull(),
+  /** Positif = crédit de relevé (entrée de fonds), négatif = débit de relevé. */
+  amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+  currency: currencyEnum("currency").default("XOF").notNull(),
+  matchedMovementId: integer("matchedMovementId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/* ------------------------------------------------------------------ */
 /* Types dérivés                                                       */
 /* ------------------------------------------------------------------ */
 

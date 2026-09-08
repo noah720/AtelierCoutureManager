@@ -14,6 +14,7 @@ import Production from "./pages/Production";
 import Purchases from "./pages/Purchases";
 import Settings from "./pages/Settings";
 import Assistant from "./pages/Assistant";
+import Accounting from "./pages/Accounting";
 import Staff from "./pages/Staff";
 import Support from "./pages/Support";
 import Billing from "./pages/Billing";
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/production" component={Production} />
       <Route path="/approvisionnement" component={Purchases} />
       <Route path="/tresorerie" component={Treasury} />
+      <Route path="/comptabilite" component={Accounting} />
       <Route path="/personnel" component={Staff} />
       <Route path="/facturation" component={Billing} />
       <Route path="/reglages" component={Settings} />

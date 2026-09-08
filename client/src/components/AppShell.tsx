@@ -17,6 +17,7 @@ import {
   Users,
   Wallet,
   Sparkles,
+  Scale,
   Receipt,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -29,6 +30,7 @@ const navSections = [
   { label: "Production atelier", href: "/production", icon: Factory },
   { label: "Approvisionnement", href: "/approvisionnement", icon: Boxes },
   { label: "Trésorerie", href: "/tresorerie", icon: Wallet },
+  { label: "Comptabilité", href: "/comptabilite", icon: Scale },
   { label: "Personnel", href: "/personnel", icon: Users },
   { label: "Assistant IA", href: "/assistant", icon: Sparkles },
   { label: "Boutiques & agences", href: "/operations/stores", icon: Store },
