@@ -56,4 +56,6 @@
 - [x] Créer une fiche client détaillée affichant mensurations et notes avec consultation et modification
 - [x] Ajouter l’interface de gestion des variantes et le flux UI d’ajustement d’inventaire
 - [ ] Afficher les variantes existantes par produit avec SKU, taille, couleur et prix dans l’interface produits
-- [ ] Ajouter la consultation détaillée et l’édition des variantes existantes
+- [x] Ajouter la consultation détaillée et l’édition des variantes existantes
+- [ ] Grouper ou rattacher explicitement les variantes à chaque produit avec le nom du produit dans l’interface
+- [ ] Ne valider la vue variantes par produit qu’après affichage structuré par produit
