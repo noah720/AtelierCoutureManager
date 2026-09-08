@@ -48,10 +48,12 @@
 - [x] Afficher un état d’erreur distinct quand `summaryQuery` ou `ordersQuery` échouent, sans afficher de fausses données d’aperçu
 - [x] Distinguer explicitement dans `Home.tsx` l’utilisateur non authentifié, l’absence de marque, l’erreur tRPC et le mode aperçu volontaire
 - [x] Ne marquer le branchement complet du tableau de bord qu’après séparation réelle des états
-- [ ] Brancher l’activité récente du dashboard sur des données réelles ou supprimer le placeholder statique
+- [x] Brancher l’activité récente du dashboard sur des données réelles ou supprimer le placeholder statique
 - [ ] Ajouter les lignes de commande `orderItems` au flux de création et de consultation des commandes
-- [ ] Ajouter la mise à jour des statuts de commande avec contrôle de rôle et tenant
+- [x] Ajouter la mise à jour des statuts de commande avec contrôle de rôle et tenant
 - [ ] Ajouter un état d’erreur explicite pour l’inventaire et revoir loading/error/empty/accessibility
 - [ ] Ajouter les actions UI de désactivation et suppression sécurisée des boutiques
-- [ ] Créer une fiche client détaillée affichant mensurations et notes avec consultation et modification
-- [ ] Ajouter l’interface de gestion des variantes et le flux UI d’ajustement d’inventaire
+- [x] Créer une fiche client détaillée affichant mensurations et notes avec consultation et modification
+- [x] Ajouter l’interface de gestion des variantes et le flux UI d’ajustement d’inventaire
+- [ ] Afficher les variantes existantes par produit avec SKU, taille, couleur et prix dans l’interface produits
+- [ ] Ajouter la consultation détaillée et l’édition des variantes existantes

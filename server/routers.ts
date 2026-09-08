@@ -116,6 +116,15 @@ export const appRouter = router({
       const [variant] = await db.insert(productVariants).values({ productId: input.productId, sku: input.sku, size: input.size ?? null, color: input.color ?? null, price: input.price });
       return variant;
     }),
+    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), sku: z.string().min(2).max(64), size: z.string().max(32).optional(), color: z.string().max(64).optional(), price: z.string().regex(/^\\d+(\\.\\d{1,2})?$/) })).mutation(async ({ ctx, input }) => {
+      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
+      const [variant] = await db.select({ id: productVariants.id }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(and(eq(productVariants.id, input.id), eq(products.organizationId, organizationId))).limit(1);
+      if (!variant) return { success: false } as const;
+      const result = await db.update(productVariants).set({ sku: input.sku, size: input.size ?? null, color: input.color ?? null, price: input.price }).where(eq(productVariants.id, input.id));
+      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
+    }),
   }),
 
   orders: router({
