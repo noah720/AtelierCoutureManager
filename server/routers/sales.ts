@@ -10,7 +10,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { and, eq, sql } from "drizzle-orm";
-import { router, protectedProcedure } from "../_core/trpc";
+import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import {
   bonuses,
   employees,
@@ -334,13 +334,9 @@ export const ratesRouter = router({
     const db = await requireDb();
     return db.select().from(exchangeRates).orderBy(exchangeRates.code);
   }),
-  update: protectedProcedure
+  update: adminProcedure
     .input(z.object({ code: z.enum(["XOF", "XAF", "USD", "EUR"]), rateToXof: z.number().positive() }))
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") {
-        const { organizationId } = await requireOrganization(ctx.user.id, ["owner"]);
-        void organizationId;
-      }
+    .mutation(async ({ input }) => {
       const db = await requireDb();
       await db
         .insert(exchangeRates)

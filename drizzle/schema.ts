@@ -132,6 +132,8 @@ export const organizations = pgTable("organizations", {
   /** Parrainage configurable (taux en %) */
   referralCustomerRate: numeric("referralCustomerRate", { precision: 5, scale: 2 }).default("10").notNull(),
   referralAffiliateRate: numeric("referralAffiliateRate", { precision: 5, scale: 2 }).default("10").notNull(),
+  /** Assistant IA (point 6) : brouillon | semi_autonome | autonome */
+  aiMode: varchar("aiMode", { length: 20 }).default("brouillon").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
@@ -561,6 +563,37 @@ export const supportTicketMessages = pgTable("supportTicketMessages", {
   authorName: varchar("authorName", { length: 160 }).notNull(),
   authorSide: varchar("authorSide", { length: 20 }).default("client").notNull(), // client | support
   message: text("message").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/* ------------------------------------------------------------------ */
+/* Assistant IA (point 6)                                              */
+/* ------------------------------------------------------------------ */
+
+/** Publications marketing générées (WhatsApp / Facebook / Instagram). */
+export const aiPosts = pgTable("aiPosts", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organizationId").notNull(),
+  channel: varchar("channel", { length: 20 }).notNull(), // whatsapp | facebook | instagram
+  kind: varchar("kind", { length: 28 }).notNull(), // produit | promo | nouvelle_collection | reactivation
+  productId: integer("productId"),
+  title: varchar("title", { length: 200 }).notNull(),
+  content: text("content").notNull(),
+  status: varchar("status", { length: 16 }).default("brouillon").notNull(), // brouillon | approuve | publie | rejete
+  scheduledAt: timestamp("scheduledAt"),
+  publishedAt: timestamp("publishedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/** Conversations clients (WhatsApp/Facebook/Instagram) et réponses de l'assistant. */
+export const aiMessages = pgTable("aiMessages", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organizationId").notNull(),
+  channel: varchar("channel", { length: 20 }).default("whatsapp").notNull(),
+  customerName: varchar("customerName", { length: 160 }).notNull(),
+  direction: varchar("direction", { length: 10 }).notNull(), // entrant | sortant
+  body: text("body").notNull(),
+  origin: varchar("origin", { length: 12 }).default("client").notNull(), // client | auto | humain
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

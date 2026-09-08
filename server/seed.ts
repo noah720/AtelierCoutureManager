@@ -14,6 +14,8 @@ import { sql } from "drizzle-orm";
 import { hashPassword } from "./_core/auth";
 import { getDb } from "./db";
 import {
+  aiMessages,
+  aiPosts,
   customers,
   deliveryZones,
   employees,
@@ -368,6 +370,22 @@ export async function seed(): Promise<void> {
     { organizationId: orgId, productionOrderId: fiche.id, employeeId: tailorTask?.id ?? null, task: "Agbada", withEmbroidery: false, rate: "5000", status: "terminee", completedAt: new Date() },
     { organizationId: orgId, productionOrderId: fiche.id, employeeId: embroidererTask?.id ?? null, task: "Agbada", withEmbroidery: true, rate: "6000", status: "assignee" },
   ]);
+
+  /* ----- Assistant IA (point 6) : conversations et publication de démo ----- */
+  await db.insert(aiMessages).values([
+    { organizationId: orgId, channel: "whatsapp", customerName: "Aminata Sow", direction: "entrant", body: "Bonjour ! Le Sac Wax il coûte combien ?", origin: "client" },
+    { organizationId: orgId, channel: "whatsapp", customerName: "Aminata Sow", direction: "sortant", body: "Bonjour 👋 Le Sac Wax est à 15 000 XOF. Les stocks partent vite — je peux vous en réserver un 🙂", origin: "auto" },
+    { organizationId: orgId, channel: "instagram", customerName: "Jean-Marc Tchoumi", direction: "entrant", body: "Vous livrez à Douala ? Et il faut combien de temps ?", origin: "client" },
+    { organizationId: orgId, channel: "whatsapp", customerName: "Fatima Bello", direction: "entrant", body: "Je voudrais une robe sur mesure, poitrine 96, taille 78, longueur 125. C'est possible ?", origin: "client" },
+  ]);
+  await db.insert(aiPosts).values({
+    organizationId: orgId,
+    channel: "whatsapp",
+    kind: "promo",
+    title: "−10 % avec le code DISTINCTION10",
+    content: "🎉 SPÉCIAL DISTINCTION 🎉\nGrâce à notre parrainage, votre code DISTINCTION10 vous offre −10 % sur vos articles.\n🚚 Lomé 1 000 XOF · 1 j — Dakar 5 000 XOF · 4 j\n📲 Répondez « CODE » pour en profiter dès aujourd'hui !",
+    status: "brouillon",
+  });
 
   void envolAdmin;
   console.log("[Seed] Données de démonstration DISTINCTION créées.");

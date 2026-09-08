@@ -27,7 +27,8 @@ L'application tourne de bout en bout : authentification locale, espace de marque
 | **Administration ENVOL** — validation des marques, paiements d'abonnement, suspension/réactivation | ✅ Opérationnel |
 | Assistance — bouton permanent sur toutes les pages, contexte pré-rempli, historique | ✅ Opérationnel |
 | **Boutique en ligne publique** — vitrine sans compte (`/boutique/<marque>`), panier, tailles S→3XL ou sur mesure, stocks agrégés multi-boutiques, zones de livraison (dont DHL international), code parrainage, paiement Moneroo (simulation si clé absente) | ✅ Opérationnel |
-| Intégration Moneroo réelle (mobile money, carte, PayPal), reçu PDF + e-mail, Assistant IA | 🚧 Prochaines étapes |
+| **Assistant Commercial & Marketing IA** — publications WhatsApp/Facebook/Instagram générées depuis les vraies données, boîte de réception multi-canal avec suggestions de réponse, 3 modes (brouillon / semi-autonome / autonome) avec journal d'activité | ✅ Opérationnel |
+| Intégration Moneroo réelle (mobile money, carte, PayPal), reçu PDF + e-mail | 🚧 Prochaines étapes |
 
 ## Démarrage rapide
 
@@ -92,12 +93,11 @@ Les migrations sont versionnées dans `drizzle/` (`pnpm db:generate` après tout
 
 ## Feuille de route (prochaines étapes)
 
-1. Intégration Moneroo réelle (mobile money, carte, PayPal) + reversement des ventes — la caisse de simulation est déjà en place (`MONEROO_API_KEY` + `MONEROO_WEBHOOK_SECRET`).
-2. Expédition du reçu client par e-mail (PDF).
-3. Comptabilité SYSCOHADA (plan comptable, écritures automatiques, états) + rapprochement bancaire.
-4. Assistant Commercial & Marketing IA (WhatsApp / réseaux sociaux, modes brouillon / semi-autonome / autonome).
-5. Pointage par géolocalisation et horaires détaillés (majoration 20 % hors horaires).
-6. Primes automatiques planifiées (hebdo / mensuel / annuel / fidélité 2 %), remboursements partiels.
+1. Comptabilité SYSCOHADA révisée (plan comptable, écritures automatiques, états financiers) + rapprochement bancaire.
+2. Intégration Moneroo réelle (mobile money, carte, PayPal) + reversement des ventes — la caisse de simulation est déjà en place (`MONEROO_API_KEY` + `MONEROO_WEBHOOK_SECRET`).
+3. Expédition du reçu client par e-mail (PDF).
+4. Pointage par géolocalisation et horaires détaillés (majoration 20 % hors horaires).
+5. Primes automatiques planifiées (hebdo / mensuel / annuel / fidélité 2 %), remboursements partiels.
 
 ## Boutique en ligne (formule complète)
 
@@ -119,3 +119,14 @@ Petites branches thématiques et pull requests vers `main`. Toute évolution tou
 ## Licence
 
 MIT.
+
+## Assistant IA (formule complète)
+
+L'onglet **Assistant IA** du back-office pilote un assistant commercial & marketing (point 6) :
+
+- **Publications** : générées à partir des vraies données de la marque (produit, gamme, prix, stock, zones de livraison, code de parrainage) et adaptées au canal — WhatsApp (réponse directe), Facebook (narratif + lien boutique), Instagram (visuel + hashtags). Circuit brouillon → approuvé → publié, avec copie en un clic.
+- **Messages clients** : boîte de réception multi-canal (conversations de démonstration incluses). L'assistant suggère une réponse contextualisée (prix, disponibilité, livraison, sur mesure, commande) ; vous l'éditez et l'envoyez.
+- **Trois modes** : *Brouillon* (tout est validé par l'humain), *Semi-autonome* (réponses automatiques aux questions simples, publications à valider), *Autonome* (publication automatique des posts approuvés + réponses automatiques). Chaque action figure dans le journal.
+- **LLM optionnel** : avec `OPENAI_API_KEY` (et `OPENAI_MODEL` optionnel), les textes sont rehaussés par un LLM ; sans clé ou en cas d'échec réseau, les gabarits internes sont utilisés tels quels — l'assistant fonctionne toujours.
+
+> Les taux de change sont globaux : seule l'administration ENVOL peut les modifier (Point 12).

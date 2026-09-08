@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Production from "./pages/Production";
 import Purchases from "./pages/Purchases";
 import Settings from "./pages/Settings";
+import Assistant from "./pages/Assistant";
 import Staff from "./pages/Staff";
 import Support from "./pages/Support";
 import Billing from "./pages/Billing";
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/personnel" component={Staff} />
       <Route path="/facturation" component={Billing} />
       <Route path="/reglages" component={Settings} />
+      <Route path="/assistant" component={Assistant} />
       <Route path="/assistance" component={Support} />
       <Route path="/admin" component={Admin} />
       <Route path="/404" component={NotFound} />
