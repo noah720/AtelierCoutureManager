@@ -7,6 +7,7 @@ import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import type { Request } from "express";
 import { parse as parseCookieHeader } from "cookie";
+import { getSessionCookieOptions } from "./cookies";
 import { eq } from "drizzle-orm";
 import { users, type User } from "../../drizzle/schema";
 import { getDb } from "../db";
@@ -65,12 +66,10 @@ export async function getSessionUser(req: Request): Promise<User | null> {
 }
 
 export function sessionCookieOptions(req: Request) {
-  const isSecure = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https";
+  // Attributes identiques au clearCookie de logout (voir cookies.ts) :
+  // SameSite=None ; Secure derrière HTTPS (aperçu iframe), Lax en local.
   return {
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax" as const,
-    secure: isSecure,
+    ...getSessionCookieOptions(req),
     maxAge: SESSION_TTL_SECONDS * 1000,
   };
 }

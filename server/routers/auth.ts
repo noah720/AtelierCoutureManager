@@ -66,7 +66,7 @@ export const authRouter = router({
 
   logout: publicProcedure.mutation(({ ctx }) => {
     const cookieOptions = getSessionCookieOptions(ctx.req);
-    ctx.res.clearCookie("app_session_id", { ...cookieOptions, maxAge: -1, sameSite: "lax" });
+    ctx.res.clearCookie("app_session_id", { ...cookieOptions, maxAge: -1 });
     return { success: true } as const;
   }),
 });
