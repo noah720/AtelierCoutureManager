@@ -2,33 +2,35 @@
 
 ## Développement local
 
-Le template Manus utilise actuellement TiDB/MySQL dans le sandbox. La configuration Drizzle locale reste donc en dialecte MySQL afin de permettre les migrations et les tests dans cet environnement.
+- Base : **PostgreSQL embarqué (PGlite)**, données dans `.data/pglite` — aucun serveur à installer.
+- Au démarrage : migrations appliquées automatiquement depuis `drizzle/`, puis données de démonstration si la base est vide (marque DISTINCTION).
+- Variables : `JWT_SECRET` recommandé en local ; `PORT` (défaut 3000).
 
 ## Production Neon
 
-La cible de production est PostgreSQL hébergé par Neon. Avant la mise en production, il faudra soit exécuter une migration PostgreSQL équivalente, soit adopter une configuration de build dédiée à PostgreSQL (`pg-core`, pilote Neon et dialecte PostgreSQL). Les noms de tables et de colonnes du modèle métier sont déjà documentés dans `drizzle/schema.ts` ; aucune donnée de production ne doit être copiée automatiquement depuis TiDB vers Neon sans procédure de migration contrôlée.
+La cible de production est **PostgreSQL hébergé par Neon**, avec le même schéma `pg-core` que le développement — plus aucune divergence MySQL/PostgreSQL.
 
-## Variables Netlify
+1. Renseigner `DATABASE_URL` (chaîne `postgresql://…` de Neon) dans l'environnement d'exécution.
+2. Renseigner `JWT_SECRET` (sessions).
+3. Au démarrage, l'application applique les migrations `drizzle/*.sql` de façon idempotente. Elles peuvent aussi être appliquées manuellement : `pnpm db:migrate`.
+4. Recommandé : une base Neon distincte pour le développement, la préproduction et la production.
 
-Configurer dans Netlify les variables suivantes, avec des valeurs différentes entre les contextes de préproduction et de production :
+## Variables d'environnement
 
-| Variable | Utilisation |
-|---|---|
-| `DATABASE_URL` | Connexion à la base de données de l’environnement |
-| `JWT_SECRET` | Signature des sessions |
-| `VITE_APP_ID` | Identifiant de l’application OAuth |
-| `OAUTH_SERVER_URL` | Serveur OAuth |
-| `VITE_OAUTH_PORTAL_URL` | Portail de connexion |
-| `MONEROO_API_KEY` | Paiements, lorsque le module sera activé |
-| `DHL_API_KEY` | Calcul des expéditions, lorsque le module sera activé |
-| `AI_API_KEY` | Assistant commercial, lorsque le module sera activé |
+| Variable | Utilisation | Requis |
+|---|---|---|
+| `DATABASE_URL` | `postgresql://…` (Neon) en production ; `pglite://…` ou vide en local | Production |
+| `JWT_SECRET` | Signature des sessions | Production |
+| `PORT` | Port d'écoute (défaut 3000) | Non |
+| `MONEROO_API_KEY` | Paiements en ligne, lorsque le module sera branché | À venir |
+| `DHL_API_KEY` | Expéditions internationales, lorsque le module sera branché | À venir |
 
-Les secrets sont à saisir dans l’interface Netlify ou via son gestionnaire de variables. Ils ne doivent jamais être ajoutés à GitHub, aux logs ou à une capture d’écran.
+Les secrets ne doivent jamais être commités : ils se saisissent dans l'interface Netlify / l'hébergeur, jamais dans le dépôt, les issues ou les logs.
+
+## Netlify (cible conservée)
+
+`netlify.toml` définit : build `pnpm build`, publication `dist/public`, Node 22, redirection SPA vers `/index.html`. Pour un déploiement du serveur complet (tRPC + sessions), prévoir un hébergeur Node (le bundle `dist/index.js` est généré par le build) ou des fonctions Netlify dédiées — décision à prendre au moment de la mise en production.
 
 ## GitHub
 
-La branche `main` doit rester déployable. Les changements de schéma, de permissions ou de paiement doivent être proposés dans une branche dédiée et validés par pull request. Les migrations doivent être versionnées avec le code et testées sur une base de préproduction avant d’être appliquées à Neon.
-
-## Netlify
-
-Le fichier `netlify.toml` définit la commande `pnpm build`, le répertoire de sortie et Node.js 22. Les réglages du site Netlify doivent être vérifiés avec le framework effectivement retenu par le projet avant le premier déploiement public.
+La branche `main` doit rester déployable. Les changements de schéma, de permissions ou de paiement passent par une branche dédiée et une pull request, avec `pnpm test` au vert.

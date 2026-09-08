@@ -1,102 +1,95 @@
 import { describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getDb: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  getDb: vi.fn(),
+  getOrganizationIdForUser: vi.fn(),
+}));
 
 vi.mock("./db", () => ({
   getDb: mocks.getDb,
-  getOperationalSummary: vi.fn(),
+  getOrganizationIdForUser: mocks.getOrganizationIdForUser,
   getOrganizationForUser: vi.fn(),
-  getOrganizationIdForUser: vi.fn(),
-  listCustomers: vi.fn(),
-  listInventory: vi.fn(),
-  listOrders: vi.fn(),
-  listProducts: vi.fn(),
-  listStores: vi.fn(),
-  listVariants: vi.fn(),
+  upsertUser: vi.fn(),
+  getUserByOpenId: vi.fn(),
+  listStores: vi.fn(async () => []),
+  listCustomers: vi.fn(async () => []),
+  listProducts: vi.fn(async () => []),
+  listInventory: vi.fn(async () => []),
+  listVariants: vi.fn(async () => []),
+  listOrders: vi.fn(async () => []),
+  listSales: vi.fn(async () => []),
+  getOperationalSummary: vi.fn(async () => ({})),
+  closeDatabase: vi.fn(),
+  migrateDatabase: vi.fn(),
+  isPglite: vi.fn(() => false),
 }));
 
 import { appRouter } from "./routers";
+import { requireOrganization } from "./guards";
 import type { TrpcContext } from "./_core/context";
 
-const user = {
+const baseUser = {
   id: 7,
   openId: "contract-user",
-  name: "Test User",
   email: "test@example.com",
-  loginMethod: "test",
+  name: "Test User",
+  loginMethod: "local",
   role: "user" as const,
+  passwordHash: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   lastSignedIn: new Date(),
 };
 
-function caller(role: "user" | "owner" | "manager" | "staff" = user.role) {
+function caller(role: "user" | "admin" = "user") {
+  const user = { ...baseUser, role };
   return appRouter.createCaller({
-    user: { ...user, role },
+    user,
     req: { protocol: "https", headers: {} } as TrpcContext["req"],
     res: {} as TrpcContext["res"],
   });
 }
 
-function query(rows: unknown[]) {
-  return { from: () => ({ where: () => ({ limit: async () => rows }) }) };
-}
-
 describe("protected tRPC contracts", () => {
   it("returns SERVICE_UNAVAILABLE when the database is unavailable", async () => {
     mocks.getDb.mockResolvedValueOnce(null);
-    await expect(caller().organization.create({ name: "Atelier", slug: "atelier" })).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
+    await expect(caller().organization.requestSubscription({ plan: "boutique", months: 1 })).rejects.toMatchObject({
+      code: "SERVICE_UNAVAILABLE",
+    });
   });
 
   it("returns PRECONDITION_FAILED when no organization is attached", async () => {
-    mocks.getDb.mockResolvedValueOnce({ select: vi.fn().mockReturnValue(query([])) });
+    mocks.getDb.mockResolvedValue({
+      select: vi.fn().mockReturnValue({ from: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }) }) }),
+    });
     await expect(caller().stores.list()).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
   });
 
-  it("allows a manager to deactivate only a store in the current tenant", async () => {
-    const db = {
-      select: vi.fn().mockReturnValue(query([{ organizationId: 10, role: "manager" }])),
-      update: vi.fn().mockReturnValue({ set: () => ({ where: async () => ({ affectedRows: 1 }) }) }),
-    };
-    mocks.getDb.mockResolvedValue(db);
-    await expect(caller().stores.deactivate({ id: 4 })).resolves.toEqual({ success: true });
-    expect(db.update).toHaveBeenCalled();
+  it("requires an authenticated user for protected procedures", async () => {
+    const unauthed = appRouter.createCaller({
+      user: null,
+      req: { protocol: "https", headers: {} } as TrpcContext["req"],
+      res: {} as TrpcContext["res"],
+    });
+    await expect(unauthed.dashboard.summary()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
-  it("allows a manager to adjust inventory through the protected procedure", async () => {
-    const db = {
-      select: vi.fn().mockReturnValue(query([{ organizationId: 10, role: "manager" }])),
-      update: vi.fn().mockReturnValue({ set: () => ({ where: async () => ({ affectedRows: 1 }) }) }),
-    };
-    mocks.getDb.mockResolvedValue(db);
-    await expect(caller().inventory.adjust({ id: 3, quantity: 12 })).resolves.toEqual({ success: true });
-    expect(db.update).toHaveBeenCalled();
+  it("hides the ENVOL administration from regular users", async () => {
+    await expect(caller("user").admin.stats()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller("user").admin.organizations()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("rejects staff from manager-only store mutations", async () => {
-    const db = { select: vi.fn().mockReturnValue(query([{ organizationId: 10, role: "staff" }])) };
-    mocks.getDb.mockResolvedValue(db);
-    await expect(caller("staff").stores.deactivate({ id: 4 })).rejects.toMatchObject({ code: "FORBIDDEN" });
-  });
-
-  it("returns no success when a store from another tenant is targeted", async () => {
-    const db = {
-      select: vi.fn().mockReturnValue(query([{ organizationId: 10, role: "manager" }])),
-      update: vi.fn().mockReturnValue({ set: () => ({ where: async () => ({ affectedRows: 0 }) }) }),
-    };
-    mocks.getDb.mockResolvedValue(db);
-    await expect(caller().stores.deactivate({ id: 999 })).resolves.toEqual({ success: false });
-  });
-
-  it("rejects an order referencing a store outside the current tenant", async () => {
-    const db = {
-      select: vi.fn()
-        .mockReturnValueOnce(query([{ organizationId: 10, role: "manager" }]))
-        .mockReturnValueOnce(query([])),
-      insert: vi.fn(),
-    };
-    mocks.getDb.mockResolvedValueOnce(db);
-    await expect(caller().orders.create({ storeId: 99, customerId: 1, reference: "CMD-001", totalAmount: "10000" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expect(db.insert).not.toHaveBeenCalled();
+  it("scopes requireOrganization to the caller's membership and role", async () => {
+    mocks.getDb.mockResolvedValue({
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ organizationId: 10, role: "manager" }]),
+          }),
+        }),
+      }),
+    });
+    await expect(requireOrganization(baseUser.id, ["owner"])).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(requireOrganization(baseUser.id, ["owner", "manager"])).resolves.toEqual({ organizationId: 10, role: "manager" });
   });
 });

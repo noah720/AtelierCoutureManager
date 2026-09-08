@@ -1,61 +1,37 @@
 # Project TODO
 
+## Réalisé (MVP fonctionnel)
+
 - [x] Définir la direction visuelle et les tokens de design de l’application
 - [x] Mettre en place le modèle multi-tenant des marques et l’isolation des données
-- [x] Ajouter les rôles et permissions d’accès par marque
-- [ ] Créer le schéma Neon/Drizzle pour marques, établissements, clients, produits, variantes, stock et commandes
-- [x] Ajouter les helpers de base de données et les procédures tRPC protégées
-- [ ] Construire le layout de tableau de bord avec navigation métier
-- [ ] Construire le tableau de bord opérationnel avec ventes, commandes, stock et activité récente
-- [x] Ajouter la gestion des boutiques ou établissements
-- [x] Ajouter la gestion des fiches clients et mensurations
-- [x] Ajouter la gestion du catalogue, variantes, prix et stock
-- [ ] Ajouter la création et le suivi des commandes avec lignes et statuts
-- [ ] Ajouter les états de chargement, erreurs, états vides et accessibilité responsive
-- [x] Ajouter ou mettre à jour les tests Vitest des flux serveur et de l’isolation tenant
-- [ ] Configurer les variables d’environnement et documenter Neon, GitHub et Netlify
+- [x] Ajouter les rôles et permissions d’accès par marque (owner / manager / staff)
+- [x] Migrer le schéma vers PostgreSQL (`pg-core`) — PGlite en local, Neon en production (fin de la divergence MySQL/TiDB)
+- [x] Authentification locale e-mail + mot de passe (scrypt + session JWT) — indépendante de tout fournisseur externe
+- [x] Schéma complet : organisations, membres, boutiques multi-devises, clients (mensurations), produits (familles/genres/gammes/tailles), variantes, stock par boutique + journal
+- [x] Caisse multidevises (7.1) : espèces XOF/USD/EUR combinées, mobile money avec demande de paiement sur numéro, TPE avec référence, reste à payer et monnaie à rendre en temps réel (logique partagée client/serveur)
+- [x] Parrainage (5.5) : codes + réduction client/commission configurables, application en caisse
+- [x] Commandes clients (7.2) avec articles + fiche de fabrication automatique à l’atelier
+- [x] Atelier (8) : circuit en 7 étapes, fiches (commande / confection / retouche), assignation des tâches au barème, paie hebdomadaire à la tâche
+- [x] Achats (9) : circuit acheteur → comptable → direction (< 50 000 F CFA : comptable seul), paiement, petite caisse 20 000 XOF (< 2 000 XOF par facture, renflouement)
+- [x] Trésorerie (11.1) : caisses boutiques, caisse centrale, banque, mobile money, TPE, boutique en ligne ; mouvements automatiques des ventes et achats
+- [x] Personnel (14) : effectifs, pointage arrivée/sortie, paie hebdomadaire (tâche) et mensuelle, primes (gros achat auto 2 %, meilleur vendeur semaine/mois, alerte < 60 points)
+- [x] Abonnements (3) : 3 formules, tarifs annuels réduits (20/25/30 %), essai 30 j + semaine de tolérance, demandes de paiement validées par ENVOL
+- [x] Administration ENVOL (2) : statistiques, marques, validation des paiements, suspension/réactivation
+- [x] Assistance (12) : bouton permanent toutes pages, contexte pré-rempli, historique et réponses
+- [x] Données de démonstration DISTINCTION (16) : atelier Lomé, 5 boutiques (Lomé + Douala XAF), personnel, barème (7.4), catalogue, clients, ventes, trésorerie
+- [x] Tests Vitest : règlement multidevises, circuit d’achats, cycle d’abonnement, primes, étapes de fabrication, isolation tenant, contrats tRPC
 - [x] Vérifier le build, les tests et le rendu desktop/mobile
-- [ ] Sauvegarder le checkpoint final et livrer la version MVP
-- [ ] Résoudre la compatibilité entre la base TiDB/MySQL de développement et la cible PostgreSQL Neon
-- [x] Implémenter un vrai contrôle d’accès par rôle de marque dans les procédures tRPC métier
-- [ ] Brancher le tableau de bord sur les données tRPC avec chargement, erreurs et états vides réels
-- [ ] Créer un layout réutilisable de dashboard métier et l’utiliser dans l’application
-- [ ] Ajouter des tests Vitest couvrant les procédures tRPC, l’isolation tenant, les permissions et les erreurs
-- [ ] Ajouter une documentation et une configuration réelles pour les variables d’environnement et Netlify/Neon
-- [ ] Mettre en place une stratégie technique explicite pour supporter Neon en production et TiDB en développement
-- [x] Vérifier en lecture seule le projet Neon connecté et récupérer ses paramètres non sensibles
-- [x] Valider la connexion Neon sans exposer la chaîne de connexion dans le dépôt ou le chat
-- [x] Préparer la configuration de publication Netlify sans déclencher la mise en production
-- [x] Synchroniser le code validé vers le dépôt GitHub AtelierCoutureManager
-- [x] Vérifier les secrets et la connexion Neon avant la publication
-- [ ] Poursuivre le développement autonome jusqu’à une version MVP réellement exploitable
-- [ ] Préparer tous les réglages nécessaires à une publication Netlify, sans déclencher la mise en production
-- [ ] Renseigner la chaîne postgresql Neon dans le secret applicatif et faire passer le test de configuration Neon
-- [ ] Vérifier explicitement les secrets requis pour OAuth, sessions et publication Netlify
-- [x] Revalider l’accès Netlify depuis l’intégration connectée et identifier le site AtelierManager
-- [x] Vérifier les réglages Netlify sans déclencher la mise en production
-- [ ] Implémenter l’édition, l’activation et la suppression sécurisée des boutiques avec UI et procédures tRPC
-- [ ] Ajouter les fiches clients détaillées avec mensurations et notes consultables et modifiables
-- [ ] Implémenter les variantes produit, les niveaux de stock par établissement et les ajustements d’inventaire
-- [x] Corriger le fallback SPA Netlify pour que les routes profondes `/operations/...` ne renvoient pas 404
-- [ ] Ouvrir et vérifier explicitement dans Netlify la branche, la commande de build, le dossier de publication, les redirects SPA et les variables non sensibles
-- [x] Tester `orders.create`, `stores.deactivate`, `inventory.adjust` et `organization.create` via `appRouter.createCaller`
-- [x] Tester les erreurs `FORBIDDEN`, `PRECONDITION_FAILED`, `BAD_REQUEST` et `SERVICE_UNAVAILABLE` des procédures protégées
-- [x] Tester qu’une ressource d’un autre tenant n’est ni lisible ni modifiable via les procédures métier
-- [x] Ajouter un état de chargement réel pour les KPIs et les commandes récentes du tableau de bord
-- [x] Afficher un état vide explicite quand aucune commande récente n’existe
-- [x] Distinguer le mode aperçu, l’absence de marque, l’erreur tRPC et l’état non authentifié
-- [x] Afficher un état d’erreur distinct quand `summaryQuery` ou `ordersQuery` échouent, sans afficher de fausses données d’aperçu
-- [x] Distinguer explicitement dans `Home.tsx` l’utilisateur non authentifié, l’absence de marque, l’erreur tRPC et le mode aperçu volontaire
-- [x] Ne marquer le branchement complet du tableau de bord qu’après séparation réelle des états
-- [x] Brancher l’activité récente du dashboard sur des données réelles ou supprimer le placeholder statique
-- [ ] Ajouter les lignes de commande `orderItems` au flux de création et de consultation des commandes
-- [x] Ajouter la mise à jour des statuts de commande avec contrôle de rôle et tenant
-- [ ] Ajouter un état d’erreur explicite pour l’inventaire et revoir loading/error/empty/accessibility
-- [ ] Ajouter les actions UI de désactivation et suppression sécurisée des boutiques
-- [x] Créer une fiche client détaillée affichant mensurations et notes avec consultation et modification
-- [x] Ajouter l’interface de gestion des variantes et le flux UI d’ajustement d’inventaire
-- [ ] Afficher les variantes existantes par produit avec SKU, taille, couleur et prix dans l’interface produits
-- [x] Ajouter la consultation détaillée et l’édition des variantes existantes
-- [ ] Grouper ou rattacher explicitement les variantes à chaque produit avec le nom du produit dans l’interface
-- [ ] Ne valider la vue variantes par produit qu’après affichage structuré par produit
+
+## À faire (prochaines étapes)
+
+- [ ] Boutique en ligne publique (vitrine, panier, tailles/gammes/couleurs ou sur mesure) branchée sur les stocks agrégés multi-boutiques
+- [ ] Intégration Moneroo réelle (mobile money, carte, PayPal) et reversement des ventes aux marques
+- [ ] Frais de livraison par zone/ville + calcul DHL au panier
+- [ ] Reçu client en PDF envoyé par e-mail à la clôture de la vente
+- [ ] Comptabilité SYSCOHADA révisé : plan comptable, écritures automatiques, états financiers
+- [ ] Vérification que les comptes en banque correspondent à la trésorerie saisie (rapprochement)
+- [ ] Assistant Commercial & Marketing IA (WhatsApp/Facebook/Instagram, modes brouillon / semi-autonome / autonome)
+- [ ] Pointage par géolocalisation + horaires détaillés et majoration 20 % hors horaires
+- [ ] Prime annuelle (voiture/moto) et fidélité trimestrielle (2 %)
+- [ ] Gestion documentaire sécurisée (pièces d’identité, documents d’existence) via stockage externe
+- [ ] Configuration finale Netlify/Neon + domaine de la plateforme et domaines personnalisés des marques

@@ -1,31 +1,101 @@
-import { OAUTH_STATE_COOKIE, encodeOAuthState } from "@shared/const";
+export const COOKIE_NAME = "app_session_id";
+export const UNAUTHED_ERR_MSG = "Please login (10001)";
+export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 
-export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+export const CURRENCIES = ["XOF", "XAF", "USD", "EUR"] as const;
+export type ClientCurrency = (typeof CURRENCIES)[number];
 
-// Start the Manus OAuth login. Call this from an event handler or effect at the
-// moment you want to navigate, e.g. `onClick={() => startLogin()}`.
-//
-// It has SIDE EFFECTS — it mints a one-time nonce, writes the __Host- state
-// cookie, and navigates immediately — so the cookie nonce always matches the
-// `state` it sends. Do NOT call it during render (no `href={startLogin()}` /
-// `loginUrl={...}`): each call overwrites the cookie, so a stray render-phase
-// call would desync it from an in-flight login and the callback would reject it
-// with "invalid oauth state". It returns void by design, so there is no URL to
-// stash across renders.
-export const startLogin = () => {
-  const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
-  const appId = import.meta.env.VITE_APP_ID;
-  const redirectUri = `${window.location.origin}/api/oauth/callback`;
-
-  const nonce = crypto.randomUUID();
-  document.cookie = `${OAUTH_STATE_COOKIE}=${nonce}; Path=/; Max-Age=600; SameSite=None; Secure`;
-  const state = encodeOAuthState({ redirectUri, nonce });
-
-  const url = new URL(`${oauthPortalUrl}/app-auth`);
-  url.searchParams.set("appId", appId);
-  url.searchParams.set("redirectUri", redirectUri);
-  url.searchParams.set("state", state);
-  url.searchParams.set("type", "signIn");
-
-  window.location.href = url.toString();
+export const CURRENCY_LABELS: Record<string, string> = {
+  XOF: "Franc CFA (XOF)",
+  XAF: "Franc CFA (XAF)",
+  USD: "Dollar US",
+  EUR: "Euro",
 };
+
+export const GAMME_LABELS: Record<string, string> = {
+  leader: "Leader",
+  vip: "VIP",
+  royale: "Royale",
+  presidentiel: "Présidentiel",
+};
+
+export const GENRE_LABELS: Record<string, string> = {
+  femme: "Femme",
+  homme: "Homme",
+  enfant: "Enfant",
+};
+
+export const SIZES_ADULT = ["S", "M", "MK", "L", "XL", "2XL", "3XL", "Sur mesure"];
+
+export const ORDER_STATUS_LABELS: Record<string, string> = {
+  pending: "En attente",
+  confirmed: "Confirmée",
+  in_production: "En production",
+  ready: "Prête",
+  delivered: "Livrée",
+  cancelled: "Annulée",
+};
+
+export const STAGE_LABELS: Record<string, string> = {
+  coupe: "Coupe",
+  couture: "Couture",
+  broderie: "Broderie",
+  finition: "Finition & repassage",
+  controle_qualite: "Contrôle qualité",
+  emballage: "Emballage",
+  livraison: "Livraison boutique",
+};
+
+export const PRODUCTION_TYPE_LABELS: Record<string, string> = {
+  commande: "Commande client",
+  confection: "Confection (tissu client)",
+  retouche: "Retouche",
+};
+
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: "Espèces",
+  mobile_money: "Mobile Money",
+  tpe: "Terminal TPE",
+  card: "Carte bancaire",
+  transfer: "Virement",
+  online: "En ligne (Moneroo)",
+};
+
+export const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  caisse_boutique: "Caisse boutique",
+  caisse_centrale: "Caisse centrale",
+  banque: "Banque",
+  mobile_money: "Mobile Money",
+  tpe: "Terminal TPE",
+  boutique_en_ligne: "Boutique en ligne",
+  petite_caisse: "Petite caisse",
+};
+
+export const PURCHASE_STATUS_LABELS: Record<string, string> = {
+  proposee: "Proposée (avis acheteur requis)",
+  valide_acheteur: "Avis acheteur donné (visa comptable requis)",
+  valide_comptable: "Validée comptable (accord direction requis)",
+  approubee: "Approuvée",
+  commandee: "Commandée",
+  recue: "Reçue / payée",
+  refusee: "Refusée",
+};
+
+export const EMPLOYEE_TYPE_LABELS: Record<string, string> = {
+  boutique: "Boutique",
+  administration: "Administration",
+  atelier: "Atelier",
+};
+
+export const TICKET_STATUS_LABELS: Record<string, string> = {
+  ouvert: "Ouverte",
+  en_cours: "En cours",
+  resolu: "Résolue",
+  ferme: "Fermée",
+};
+
+export function formatXof(value: number | string | null | undefined, currency = "XOF"): string {
+  const amount = Number(value ?? 0);
+  const hasCents = Math.abs(amount % 1) > 0.001;
+  return `${amount.toLocaleString("fr-FR", { minimumFractionDigits: hasCents ? 2 : 0, maximumFractionDigits: 2 })} ${currency}`;
+}

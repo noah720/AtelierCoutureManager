@@ -1,174 +1,39 @@
-import { COOKIE_NAME } from "@shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
+import { router } from "./_core/trpc";
+import { authRouter } from "./routers/auth";
+import { organizationRouter } from "./routers/organization";
+import { storesRouter } from "./routers/stores";
+import { customersRouter } from "./routers/customers";
+import { productsRouter, variantsRouter, inventoryRouter } from "./routers/catalog";
+import { salesRouter, ratesRouter } from "./routers/sales";
+import { ordersRouter, supportRouter, dashboardRouter } from "./routers/misc";
+import { productionRouter } from "./routers/production";
+import { purchasesRouter } from "./routers/purchases";
+import { treasuryRouter } from "./routers/treasury";
+import { employeesRouter } from "./routers/people";
+import { adminRouter } from "./routers/admin";
 import { systemRouter } from "./_core/systemRouter";
-import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-import { and, eq } from "drizzle-orm";
-import { getDb, getOperationalSummary, getOrganizationForUser, getOrganizationIdForUser, listCustomers, listInventory, listOrders, listProducts, listStores, listVariants } from "./db";
-import { customers, inventory, orderItems, orders, organizationMembers, organizations, productVariants, products, stores } from "../drizzle/schema";
 
-export function assertAllowedRole(role: "owner" | "manager" | "staff", allowedRoles: Array<"owner" | "manager" | "staff">) {
-  if (!allowedRoles.includes(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Votre rôle ne permet pas cette action." });
-}
-
-async function requireOrganization(userId: number, allowedRoles: Array<"owner" | "manager" | "staff"> = ["owner", "manager", "staff"]) {
-  const db = await getDb();
-  if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
-  const membership = await db.select({ organizationId: organizationMembers.organizationId, role: organizationMembers.role }).from(organizationMembers).where(eq(organizationMembers.userId, userId)).limit(1);
-  const current = membership[0];
-  if (!current) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Aucune marque n’est encore associée à ce compte." });
-  assertAllowedRole(current.role, allowedRoles);
-  return current.organizationId;
-}
+export { assertAllowedRole } from "./guards";
 
 export const appRouter = router({
   system: systemRouter,
-  auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
-    logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return { success: true } as const;
-    }),
-  }),
-
-  organization: router({
-    current: protectedProcedure.query(({ ctx }) => getOrganizationForUser(ctx.user.id)),
-    create: protectedProcedure.input(z.object({ name: z.string().min(2).max(160), slug: z.string().min(2).max(96).regex(/^[a-z0-9-]+$/), country: z.string().max(80).optional() })).mutation(async ({ ctx, input }) => {
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
-      const existing = await getOrganizationIdForUser(ctx.user.id);
-      if (existing) throw new TRPCError({ code: "CONFLICT", message: "Ce compte possède déjà une marque." });
-      const [organization] = await db.insert(organizations).values({ name: input.name, slug: input.slug, country: input.country ?? null }).$returningId();
-      if (!organization?.id) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Création de la marque impossible." });
-      await db.insert(organizationMembers).values({ organizationId: organization.id, userId: ctx.user.id, role: "owner" });
-      return { id: organization.id };
-    }),
-  }),
-
-  dashboard: router({
-    summary: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(getOperationalSummary)),
-  }),
-
-  stores: router({
-    list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listStores)),
-    create: protectedProcedure.input(z.object({ name: z.string().min(2).max(160), city: z.string().max(100).optional(), address: z.string().max(240).optional() })).mutation(async ({ ctx, input }) => {
-      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE" });
-      const [store] = await db.insert(stores).values({ organizationId, name: input.name, city: input.city ?? null, address: input.address ?? null }).$returningId();
-      return store;
-    }),
-    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), name: z.string().min(2).max(160), city: z.string().max(100).optional(), address: z.string().max(240).optional() })).mutation(async ({ ctx, input }) => {
-      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
-      const result = await db.update(stores).set({ name: input.name, city: input.city ?? null, address: input.address ?? null }).where(and(eq(stores.id, input.id), eq(stores.organizationId, organizationId)));
-      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
-    }),
-    deactivate: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
-      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
-      const result = await db.update(stores).set({ isActive: false }).where(and(eq(stores.id, input.id), eq(stores.organizationId, organizationId)));
-      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
-    }),
-  }),
-
-  customers: router({
-    list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listCustomers)),
-    create: protectedProcedure.input(z.object({ firstName: z.string().min(1).max(80), lastName: z.string().min(1).max(80), email: z.string().email().optional(), phone: z.string().max(40).optional(), city: z.string().max(100).optional(), measurements: z.string().max(2000).optional(), notes: z.string().max(4000).optional() })).mutation(async ({ ctx, input }) => {
-      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE" });
-      const [customer] = await db.insert(customers).values({ organizationId, firstName: input.firstName, lastName: input.lastName, email: input.email ?? null, phone: input.phone ?? null, city: input.city ?? null, measurements: input.measurements ?? null, notes: input.notes ?? null }).$returningId();
-      return customer;
-    }),
-    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), firstName: z.string().min(1).max(80), lastName: z.string().min(1).max(80), email: z.string().email().optional(), phone: z.string().max(40).optional(), city: z.string().max(100).optional(), measurements: z.string().max(2000).optional(), notes: z.string().max(4000).optional() })).mutation(async ({ ctx, input }) => {
-      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE" });
-      const result = await db.update(customers).set({ firstName: input.firstName, lastName: input.lastName, email: input.email ?? null, phone: input.phone ?? null, city: input.city ?? null, measurements: input.measurements ?? null, notes: input.notes ?? null }).where(and(eq(customers.id, input.id), eq(customers.organizationId, organizationId)));
-      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
-    }),
-  }),
-
-  inventory: router({
-    list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listInventory)),
-    adjust: protectedProcedure.input(z.object({ id: z.number().int().positive(), quantity: z.number().int().min(0) })).mutation(async ({ ctx, input }) => {
-      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
-      const result = await db.update(inventory).set({ quantity: input.quantity }).where(and(eq(inventory.id, input.id), eq(inventory.organizationId, organizationId)));
-      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
-    }),
-  }),
-
-  variants: router({
-    list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listVariants)),
-    create: protectedProcedure.input(z.object({ productId: z.number().int().positive(), sku: z.string().min(2).max(64), size: z.string().max(32).optional(), color: z.string().max(64).optional(), price: z.string().regex(/^\\d+(\\.\\d{1,2})?$/) })).mutation(async ({ ctx, input }) => {
-      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
-      const [product] = await db.select({ id: products.id }).from(products).where(and(eq(products.id, input.productId), eq(products.organizationId, organizationId))).limit(1);
-      if (!product) throw new TRPCError({ code: "BAD_REQUEST", message: "Le produit n’appartient pas à votre marque." });
-      const [variant] = await db.insert(productVariants).values({ productId: input.productId, sku: input.sku, size: input.size ?? null, color: input.color ?? null, price: input.price });
-      return variant;
-    }),
-    update: protectedProcedure.input(z.object({ id: z.number().int().positive(), sku: z.string().min(2).max(64), size: z.string().max(32).optional(), color: z.string().max(64).optional(), price: z.string().regex(/^\\d+(\\.\\d{1,2})?$/) })).mutation(async ({ ctx, input }) => {
-      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
-      const [variant] = await db.select({ id: productVariants.id }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(and(eq(productVariants.id, input.id), eq(products.organizationId, organizationId))).limit(1);
-      if (!variant) return { success: false } as const;
-      const result = await db.update(productVariants).set({ sku: input.sku, size: input.size ?? null, color: input.color ?? null, price: input.price }).where(eq(productVariants.id, input.id));
-      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
-    }),
-  }),
-
-  orders: router({
-    list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listOrders)),
-    create: protectedProcedure.input(z.object({ storeId: z.number().int().positive(), customerId: z.number().int().positive(), reference: z.string().min(3).max(32), totalAmount: z.string().regex(/^\\d+(\\.\\d{1,2})?$/), notes: z.string().max(2000).optional(), items: z.array(z.object({ variantId: z.number().int().positive(), quantity: z.number().int().positive(), unitPrice: z.string().regex(/^\\d+(\\.\\d{1,2})?$/) })).max(50).optional() })).mutation(async ({ ctx, input }) => {
-      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager", "staff"]);
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
-      const [store] = await db.select({ id: stores.id }).from(stores).where(and(eq(stores.id, input.storeId), eq(stores.organizationId, organizationId))).limit(1);
-      const [customer] = await db.select({ id: customers.id }).from(customers).where(and(eq(customers.id, input.customerId), eq(customers.organizationId, organizationId))).limit(1);
-      if (!store || !customer) throw new TRPCError({ code: "BAD_REQUEST", message: "La boutique ou le client n’appartient pas à votre marque." });
-      const items = input.items ?? [];
-      for (const item of items) {
-        const [variant] = await db.select({ id: productVariants.id }).from(productVariants).innerJoin(products, eq(productVariants.productId, products.id)).where(and(eq(productVariants.id, item.variantId), eq(products.organizationId, organizationId))).limit(1);
-        if (!variant) throw new TRPCError({ code: "BAD_REQUEST", message: "Une variante n’appartient pas à votre marque." });
-      }
-      const [order] = await db.insert(orders).values({ organizationId, storeId: input.storeId, customerId: input.customerId, reference: input.reference, totalAmount: input.totalAmount, notes: input.notes ?? null }).$returningId();
-      if (!order?.id) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Création de la commande impossible." });
-      if (items.length) await db.insert(orderItems).values(items.map((item) => ({ orderId: order.id, variantId: item.variantId, quantity: item.quantity, unitPrice: item.unitPrice })));
-      return order;
-    }),
-    updateStatus: protectedProcedure.input(z.object({ id: z.number().int().positive(), status: z.enum(["pending", "confirmed", "in_production", "ready", "delivered", "cancelled"]) })).mutation(async ({ ctx, input }) => {
-      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager", "staff"]);
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
-      const result = await db.update(orders).set({ status: input.status }).where(and(eq(orders.id, input.id), eq(orders.organizationId, organizationId)));
-      return { success: Boolean((result as { affectedRows?: number }).affectedRows) } as const;
-    }),
-  }),
-
-  products: router({
-    list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listProducts)),
-    create: protectedProcedure.input(z.object({ name: z.string().min(2).max(160), category: z.string().min(2).max(80), basePrice: z.string().regex(/^\d+(\.\d{1,2})?$/), description: z.string().max(2000).optional() })).mutation(async ({ ctx, input }) => {
-      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE" });
-      const [product] = await db.insert(products).values({ organizationId, name: input.name, category: input.category, basePrice: input.basePrice, description: input.description ?? null }).$returningId();
-      return product;
-    }),
-  }),
-
-  admin: router({
-    health: adminProcedure.query(() => ({ ok: true })),
-  }),
+  auth: authRouter,
+  organization: organizationRouter,
+  stores: storesRouter,
+  customers: customersRouter,
+  products: productsRouter,
+  variants: variantsRouter,
+  inventory: inventoryRouter,
+  sales: salesRouter,
+  orders: ordersRouter,
+  production: productionRouter,
+  purchases: purchasesRouter,
+  treasury: treasuryRouter,
+  employees: employeesRouter,
+  support: supportRouter,
+  rates: ratesRouter,
+  dashboard: dashboardRouter,
+  admin: adminRouter,
 });
 
 export type AppRouter = typeof appRouter;
