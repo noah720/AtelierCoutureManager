@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { ArrowRight, Loader2, LockKeyhole, Mail, User } from "lucide-react";
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { toast } from "sonner";
 
 const demoAccounts = [
@@ -15,6 +16,7 @@ const demoAccounts = [
 
 export default function Login() {
   const utils = trpc.useUtils();
+  const [, navigate] = useLocation();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [values, setValues] = useState({ name: "", email: "", password: "" });
   const [pending, setPending] = useState(false);
@@ -23,6 +25,7 @@ export default function Login() {
     onSuccess: async () => {
       await utils.auth.me.invalidate();
       toast.success("Connexion réussie. Bienvenue !");
+      navigate("/", { replace: true });
     },
     onError: (error) => toast.error(error.message),
   });
@@ -31,6 +34,7 @@ export default function Login() {
     onSuccess: async () => {
       await utils.auth.me.invalidate();
       toast.success("Compte créé. Bienvenue sur AtelierManager !");
+      navigate("/", { replace: true });
     },
     onError: (error) => toast.error(error.message),
   });
