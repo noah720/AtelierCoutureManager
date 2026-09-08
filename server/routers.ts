@@ -107,6 +107,15 @@ export const appRouter = router({
 
   variants: router({
     list: protectedProcedure.query(({ ctx }) => requireOrganization(ctx.user.id).then(listVariants)),
+    create: protectedProcedure.input(z.object({ productId: z.number().int().positive(), sku: z.string().min(2).max(64), size: z.string().max(32).optional(), color: z.string().max(64).optional(), price: z.string().regex(/^\\d+(\\.\\d{1,2})?$/) })).mutation(async ({ ctx, input }) => {
+      const organizationId = await requireOrganization(ctx.user.id, ["owner", "manager"]);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Base de données indisponible." });
+      const [product] = await db.select({ id: products.id }).from(products).where(and(eq(products.id, input.productId), eq(products.organizationId, organizationId))).limit(1);
+      if (!product) throw new TRPCError({ code: "BAD_REQUEST", message: "Le produit n’appartient pas à votre marque." });
+      const [variant] = await db.insert(productVariants).values({ productId: input.productId, sku: input.sku, size: input.size ?? null, color: input.color ?? null, price: input.price });
+      return variant;
+    }),
   }),
 
   orders: router({
