@@ -30,7 +30,8 @@ L'application tourne de bout en bout : authentification locale, espace de marque
 | **Assistant Commercial & Marketing IA** — publications WhatsApp/Facebook/Instagram générées depuis les vraies données, boîte de réception multi-canal avec suggestions de réponse, 3 modes (brouillon / semi-autonome / autonome) avec journal d'activité | ✅ Opérationnel |
 | **Comptabilité SYSCOHADA** — écritures automatiques (ventes, achats, règlements, ventes en ligne, paie, virements), balance équilibrée, compte de résultat, bilan simplifié, plan comptable | ✅ Opérationnel |
 | **Rapprochement bancaire** — lignes de relevé, rapprochement automatique (montant/sens/date), écarts signalés | ✅ Opérationnel |
-| Reçu client PDF + e-mail, intégration Moneroo réelle | 🚧 Prochaines étapes |
+| **Reçus clients** — PDF généré sans dépendance (vente boutique ou commande en ligne), envoi par e-mail (Resend/SMTP) ou mode simulation journalisé | ✅ Opérationnel |
+| Intégration Moneroo réelle (mobile money, carte, PayPal) | 🚧 Prochaines étapes |
 
 ## Démarrage rapide
 
@@ -96,8 +97,7 @@ Les migrations sont versionnées dans `drizzle/` (`pnpm db:generate` après tout
 ## Feuille de route (prochaines étapes)
 
 1. Intégration Moneroo réelle (mobile money, carte, PayPal) + reversement des ventes — la caisse de simulation est déjà en place (`MONEROO_API_KEY` + `MONEROO_WEBHOOK_SECRET`).
-2. Expédition du reçu client par e-mail (PDF).
-3. Pointage par géolocalisation et horaires détaillés (majoration 20 % hors horaires).
+2. Pointage par géolocalisation et horaires détaillés (majoration 20 % hors horaires).
 4. Primes automatiques planifiées (hebdo / mensuel / annuel / fidélité 2 %), remboursements partiels.
 
 ## Boutique en ligne (formule complète)
@@ -143,3 +143,10 @@ L'onglet **Comptabilité** génère les écritures automatiques aux normes **SYS
 - La synchronisation est **idempotente** (une opération = une écriture, index unique) et les écritures sont toujours **équilibrées**.
 - **États** : balance générale (totaux débit = crédit), compte de résultat, bilan simplifié.
 - **Rapprochement bancaire (11)** : importez les lignes de votre relevé, l'assistant rapproche automatiquement (même montant, même sens, ±7 jours), et signale les écarts (lignes ou mouvements non rapprochés) — vérification que la banque correspond à la trésorerie saisie.
+
+## Reçus clients PDF + e-mail (point 13)
+
+- **Génération PDF sans dépendance** : le serveur produit un PDF 1.4 natif (polices Helvetica, WinAnsi) — aucun paquet externe, fonctionne aussi bien en local que sur un hébergeur serverless. Le reçu contient la marque, la boutique, le client, les articles (taille · couleur), les frais de livraison, la réduction de parrainage, le **net à payer**, les règlements et le **reste à payer** éventuel.
+- **Ventilation** : vente boutique → bouton « Reçu PDF » et « Envoyer par e-mail » dans la fenêtre de fin de vente de la **Caisse** ; commande en ligne payée → boutons « Reçu » et « E-mail » dans **Opérations → Commandes clients** (destinataire par défaut : l'e-mail du paiement en ligne).
+- **Envoi d'e-mail** : `RESEND_API_KEY` (API HTTP, pièce jointe base64) ou `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` (nodemailer s'il est installé). **Sans fournisseur configuré**, l'envoi est **simulé et journalisé** — l'application reste 100 % utilisable en démonstration.
+- Chaque téléchargement et chaque envoi est tracé dans le journal des reçus (`receipts.logs`).

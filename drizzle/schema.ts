@@ -649,6 +649,24 @@ export const bankStatementLines = pgTable("bankStatementLines", {
 });
 
 /* ------------------------------------------------------------------ */
+/* Reçus clients (point 13)                                            */
+/* ------------------------------------------------------------------ */
+
+/** Journal des reçus émis (téléchargés ou envoyés par e-mail). */
+export const receiptLogs = pgTable("receiptLogs", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organizationId").notNull(),
+  kind: varchar("kind", { length: 10 }).notNull(), // sale | order
+  refId: integer("refId").notNull(),
+  reference: varchar("reference", { length: 32 }).notNull(),
+  recipient: varchar("recipient", { length: 320 }),
+  status: varchar("status", { length: 12 }).notNull(), // envoye | simulation | telecharge | erreur
+  detail: text("detail"),
+  sentByUserId: integer("sentByUserId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+/* ------------------------------------------------------------------ */
 /* Types dérivés                                                       */
 /* ------------------------------------------------------------------ */
 

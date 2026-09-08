@@ -7,6 +7,7 @@ import { productsRouter, variantsRouter, inventoryRouter } from "./routers/catal
 import { salesRouter, ratesRouter } from "./routers/sales";
 import { assistantRouter } from "./routers/assistant";
 import { accountingRouter } from "./routers/accounting";
+import { receiptsRouter } from "./routers/receipts";
 import { ordersRouter, supportRouter, dashboardRouter } from "./routers/misc";
 import { productionRouter } from "./routers/production";
 import { purchasesRouter } from "./routers/purchases";
@@ -36,6 +37,7 @@ export const appRouter = router({
   support: supportRouter,
   rates: ratesRouter,
   accounting: accountingRouter,
+  receipts: receiptsRouter,
   assistant: assistantRouter,
   dashboard: dashboardRouter,
   admin: adminRouter,

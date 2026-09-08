@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { CURRENCY_LABELS, formatXof, PAYMENT_METHOD_LABELS } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { Banknote, CreditCard, Minus, Plus, Printer, Search, Smartphone, Trash2, Wallet } from "lucide-react";
+import { downloadBase64Pdf } from "@/lib/download";
+import { Banknote, CreditCard, FileDown, Mail, Minus, Plus, Printer, Search, Smartphone, Trash2, Wallet } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { computeSettlement, convert, DEFAULT_RATES, type CurrencyCode, type PaymentInput, type PaymentMethod, type RateMap } from "@shared/money";
@@ -33,7 +34,7 @@ export default function Caisse() {
   const [cashInputs, setCashInputs] = useState<Record<string, string>>({ XOF: "", USD: "", EUR: "" });
   const [mobileDialog, setMobileDialog] = useState<{ open: boolean; amount: string; currency: CurrencyCode; number: string }>({ open: false, amount: "", currency: "XOF", number: "" });
   const [tpeDialog, setTpeDialog] = useState<{ open: boolean; amount: string; currency: CurrencyCode; reference: string }>({ open: false, amount: "", currency: "XOF", reference: "" });
-  const [receipt, setReceipt] = useState<{ reference: string; total: number; currency: string; three: { XOF: number; USD: number; EUR: number }; change: number } | null>(null);
+  const [receipt, setReceipt] = useState<{ saleId: number; reference: string; total: number; currency: string; three: { XOF: number; USD: number; EUR: number }; change: number } | null>(null);
 
   const store = (storesQuery.data ?? []).find((s) => s.id === (storeId ?? storesQuery.data?.[0]?.id));
   const activeStoreId = store?.id ?? null;
@@ -89,11 +90,30 @@ export default function Caisse() {
   const createSale = trpc.sales.create.useMutation({
     onSuccess: (result) => {
       toast.success(`Vente ${result.sale.reference} enregistrée.`);
-      setReceipt({ reference: result.sale.reference, total: Number(result.sale.totalAmount), currency: result.storeCurrency, three: result.threeCurrencies, change: result.settlement.change });
+      setReceipt({ saleId: result.sale.id, reference: result.sale.reference, total: Number(result.sale.totalAmount), currency: result.storeCurrency, three: result.threeCurrencies, change: result.settlement.change });
       resetSale();
       utils.dashboard.summary.invalidate();
       utils.sales.list.invalidate();
       utils.inventory.list.invalidate();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  // Reçu PDF + envoi e-mail (point 13) — actifs dès qu'une vente est réglée.
+  const receiptPdf = trpc.receipts.salePdf.useQuery({ saleId: receipt?.saleId ?? 0 }, { enabled: Boolean(receipt?.saleId) });
+  const downloadReceipt = async () => {
+    try {
+      const result = await receiptPdf.refetch();
+      if (result.data) downloadBase64Pdf(result.data.filename, result.data.base64);
+    } catch (error) {
+      toast.error("Impossible de générer le reçu PDF.");
+    }
+  };
+  const emailSale = trpc.receipts.emailSale.useMutation({
+    onSuccess: (result) => {
+      if (result.status === "envoye") toast.success(`Reçu envoyé à ${result.recipient}.`);
+      else if (result.status === "simulation") toast.info(`E-mail simulé (aucun fournisseur configuré) — ${result.recipient}. Le PDF reste téléchargeable.`);
+      else toast.error(`Échec de l'envoi : ${result.detail ?? "erreur inconnue"}`);
     },
     onError: (error) => toast.error(error.message),
   });
@@ -374,9 +394,27 @@ export default function Caisse() {
                 )}
               </div>
               <p className="text-[11px] text-[#969991]">Le stock de la boutique a été mis à jour et la trésorerie alimentée automatiquement.</p>
-              <Button variant="outline" onClick={() => window.print()} className="w-full rounded-xl text-xs font-semibold">
-                <Printer size={14} className="mr-2" /> Imprimer le reçu
-              </Button>
+              <div className="grid grid-cols-1 gap-2">
+                <Button variant="outline" className="w-full rounded-xl text-xs font-semibold" onClick={() => downloadReceipt()} disabled={receiptPdf.isFetching}>
+                  <FileDown size={14} className="mr-2" /> Reçu PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-xl text-xs font-semibold"
+                  onClick={() => {
+                    if (!receipt) return;
+                    const to = window.prompt("Adresse e-mail du client :", "");
+                    if (!to) return;
+                    emailSale.mutate({ saleId: receipt.saleId, to });
+                  }}
+                  disabled={emailSale.isPending}
+                >
+                  <Mail size={14} className="mr-2" /> Envoyer par e-mail
+                </Button>
+                <Button variant="outline" onClick={() => window.print()} className="w-full rounded-xl text-xs font-semibold">
+                  <Printer size={14} className="mr-2" /> Imprimer le reçu
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

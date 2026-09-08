@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatXof, GAMME_LABELS, GENRE_LABELS, ORDER_STATUS_LABELS, SIZES_ADULT } from "@/const";
 import { trpc } from "@/lib/trpc";
+import { downloadBase64Pdf } from "@/lib/download";
+import { toast } from "sonner";
 import { Boxes, MapPin, Package, Pencil, Plus, Search, Store, Trash2, Users, X } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 
@@ -484,6 +486,26 @@ function OrdersList({ onOpenCreate, storesById }: { onOpenCreate: () => void; st
   const query = trpc.orders.list.useQuery();
   const statusMutation = trpc.orders.updateStatus.useMutation({ onSuccess: () => utils.orders.list.invalidate() });
   const statuses = ["pending", "confirmed", "in_production", "ready", "delivered", "cancelled"] as const;
+  const [receiptOrderId, setReceiptOrderId] = useState<number | null>(null);
+  const orderPdf = trpc.receipts.orderPdf.useQuery({ orderId: receiptOrderId ?? 0 }, { enabled: receiptOrderId !== null });
+  useState;
+  const emailOrder = trpc.receipts.emailOrder.useMutation({
+    onSuccess: (result) => {
+      if (result.status === "envoye") toast.success(`Reçu envoyé à ${result.recipient}.`);
+      else if (result.status === "simulation") toast.info(`E-mail simulé (aucun fournisseur configuré) — ${result.recipient}.`);
+      else toast.error(`Échec de l'envoi : ${result.detail ?? "erreur inconnue"}`);
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const downloadOrderReceipt = async (orderId: number) => {
+    try {
+      setReceiptOrderId(orderId);
+      const result = await orderPdf.refetch();
+      if (result.data) downloadBase64Pdf(result.data.filename, result.data.base64);
+    } catch {
+      toast.error("Impossible de générer le reçu PDF.");
+    }
+  };
 
   return (
     <Card className="border-[#e8e8e2] shadow-[0_8px_30px_rgba(43,45,37,0.025)]">
@@ -520,6 +542,27 @@ function OrdersList({ onOpenCreate, storesById }: { onOpenCreate: () => void; st
                   </p>
                 </div>
                 <p className="text-sm font-semibold">{formatXof(order.totalAmount)}</p>
+                {order.channel === "en_ligne" && order.paymentStatus === "paye" && (
+                  <div className="flex gap-1">
+                    <button
+                      className="rounded-lg border border-[#e4e5df] bg-white px-2 py-1 text-[10px] font-semibold text-[#60635c] hover:bg-[#f1f1ed]"
+                      onClick={() => downloadOrderReceipt(order.id)}
+                      title="Télécharger le reçu PDF"
+                    >
+                      Reçu
+                    </button>
+                    <button
+                      className="rounded-lg border border-[#e4e5df] bg-white px-2 py-1 text-[10px] font-semibold text-[#60635c] hover:bg-[#f1f1ed]"
+                      onClick={() => {
+                        const to = window.prompt("Adresse e-mail du client :", "");
+                        if (to) emailOrder.mutate({ orderId: order.id, to });
+                      }}
+                      title="Envoyer le reçu par e-mail"
+                    >
+                      E-mail
+                    </button>
+                  </div>
+                )}
                 <select
                   aria-label={`Statut de ${order.reference}`}
                   value={order.status}
